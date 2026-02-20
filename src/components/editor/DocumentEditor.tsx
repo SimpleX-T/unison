@@ -3,7 +3,6 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Collaboration from "@tiptap/extension-collaboration";
-// CollaborationCursor removed — v2 is incompatible with current TipTap v3 StarterKit
 import Placeholder from "@tiptap/extension-placeholder";
 import * as Y from "yjs";
 import { SupabaseProvider } from "@/lib/yjs/SupabaseProvider";
@@ -31,7 +30,7 @@ export function DocumentEditor({
   const [providerReady, setProviderReady] = useState(false);
   const providerRef = useRef<SupabaseProvider | null>(null);
 
-  // Create Y.Doc synchronously so it's always available for Collaboration
+  // Create Y.Doc only once per documentId (stable reference)
   const ydoc = useMemo(() => new Y.Doc(), [documentId]);
 
   // Autosave title to DB (debounced 1.5s)
@@ -52,10 +51,25 @@ export function DocumentEditor({
     return () => clearTimeout(timer);
   }, [title, documentId, userId, initialTitle]);
 
-  // Connect the Supabase provider (async network layer)
+  // Connect the Supabase provider — only depends on ydoc + documentId
+  // NOT on user.preferred_language (that would destroy the doc on language change)
   useEffect(() => {
     const provider = new SupabaseProvider(ydoc, documentId);
     providerRef.current = provider;
+    setProviderReady(true);
+
+    return () => {
+      provider.destroy();
+      ydoc.destroy();
+      setProviderReady(false);
+    };
+  }, [ydoc, documentId]);
+
+  // Update awareness separately — this runs when user or language changes
+  // without tearing down the Yjs doc
+  useEffect(() => {
+    const provider = providerRef.current;
+    if (!provider || !user.id) return;
 
     const lang = getLanguage(user.preferred_language);
     provider.setAwarenessUser({
@@ -65,24 +79,14 @@ export function DocumentEditor({
       color: lang.accent,
       flag: lang.flag,
     });
-
-    setProviderReady(true);
-
-    return () => {
-      provider.destroy();
-      ydoc.destroy();
-      setProviderReady(false);
-    };
-  }, [ydoc, documentId, user.id, user.display_name, user.preferred_language]);
+  }, [user.id, user.display_name, user.preferred_language]);
 
   const editor = useEditor(
     {
       immediatelyRender: false,
       extensions: [
         StarterKit,
-        Collaboration.configure({
-          document: ydoc,
-        }),
+        Collaboration.configure({ document: ydoc }),
         Placeholder.configure({
           placeholder:
             "Start writing… your collaborators will see it in their language.",

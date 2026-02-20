@@ -14,6 +14,7 @@ export class SupabaseProvider {
   private channel: ReturnType<typeof this.supabase.channel>;
   private persistTimeout: ReturnType<typeof setTimeout> | null = null;
   private connected = false;
+  private dirty = false;
 
   constructor(doc: Y.Doc, documentId: string) {
     this.doc = doc;
@@ -25,6 +26,7 @@ export class SupabaseProvider {
 
   private async connect() {
     // 1. Load persisted Yjs state from Supabase
+    //    yjs_state is now a jsonb column storing a number array like [1,3,144,...]
     try {
       const { data } = await this.supabase
         .from("documents")
@@ -32,19 +34,16 @@ export class SupabaseProvider {
         .eq("id", this.documentId)
         .single();
 
-      if (data?.yjs_state) {
-        const state = new Uint8Array(
-          Array.isArray(data.yjs_state)
-            ? data.yjs_state
-            : Object.values(data.yjs_state),
-        );
+      if (
+        data?.yjs_state &&
+        Array.isArray(data.yjs_state) &&
+        data.yjs_state.length > 0
+      ) {
+        const state = new Uint8Array(data.yjs_state);
         Y.applyUpdate(this.doc, state);
       }
-    } catch {
-      // Supabase not configured — no persisted state to load
-      console.info(
-        "SupabaseProvider: No persisted state (Supabase may not be configured)",
-      );
+    } catch (err) {
+      console.warn("SupabaseProvider: Could not load persisted state", err);
     }
 
     // 2. Subscribe to broadcast updates from other clients
@@ -67,7 +66,6 @@ export class SupabaseProvider {
     this.doc.on("update", (update: Uint8Array, origin: string) => {
       if (origin === "remote") return;
 
-      // Broadcast to peers
       if (this.connected) {
         this.channel.send({
           type: "broadcast",
@@ -76,7 +74,7 @@ export class SupabaseProvider {
         });
       }
 
-      // Persist to Supabase (debounced)
+      this.dirty = true;
       this.debouncedPersist();
     });
 
@@ -94,20 +92,25 @@ export class SupabaseProvider {
 
   private debouncedPersist() {
     if (this.persistTimeout) clearTimeout(this.persistTimeout);
-    this.persistTimeout = setTimeout(async () => {
-      try {
-        const state = Y.encodeStateAsUpdate(this.doc);
-        await this.supabase
-          .from("documents")
-          .update({
-            yjs_state: Array.from(state),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", this.documentId);
-      } catch {
-        // Supabase not configured — skip persistence
-      }
-    }, 2000);
+    this.persistTimeout = setTimeout(() => this.persist(), 2000);
+  }
+
+  private async persist() {
+    if (!this.dirty) return;
+    try {
+      const state = Y.encodeStateAsUpdate(this.doc);
+      // yjs_state is jsonb — Array.from() produces [1,3,144,...] which jsonb stores correctly
+      await this.supabase
+        .from("documents")
+        .update({
+          yjs_state: Array.from(state),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", this.documentId);
+      this.dirty = false;
+    } catch (err) {
+      console.warn("SupabaseProvider: persist failed", err);
+    }
   }
 
   setAwarenessUser(user: {
@@ -121,8 +124,15 @@ export class SupabaseProvider {
   }
 
   destroy() {
+    // Flush any pending writes immediately before teardown
+    if (this.persistTimeout) {
+      clearTimeout(this.persistTimeout);
+      this.persistTimeout = null;
+    }
+    if (this.dirty) {
+      this.persist(); // fire-and-forget
+    }
     this.channel.unsubscribe();
     this.awareness.destroy();
-    if (this.persistTimeout) clearTimeout(this.persistTimeout);
   }
 }

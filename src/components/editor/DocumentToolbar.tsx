@@ -1,9 +1,8 @@
 "use client";
-import { useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { LanguageBadge } from "@/components/ui/LanguageBadge";
-import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Languages, Eye, EyeOff, ChevronLeft } from "lucide-react";
+import { getLanguage } from "@/lib/languages";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { Editor } from "@tiptap/react";
@@ -27,6 +26,7 @@ export function DocumentToolbar({
   const user = useAppStore((s) => s.user);
   const params = useParams();
   const slug = params?.slug as string;
+  const lang = getLanguage(user.preferred_language);
 
   return (
     <div className="document-toolbar">
@@ -48,23 +48,20 @@ export function DocumentToolbar({
       </div>
 
       <div className="document-toolbar-right">
-        {/* Presence avatars — demo users */}
-        <div className="presence-bar">
-          <div
-            className="presence-user"
-            style={{ "--lang-accent": "#4a7c59" } as React.CSSProperties}
-          >
-            <span className="presence-dot" />
-            <span>Alex 🇬🇧</span>
+        {/* Presence — shows current user; real multi-user comes from Yjs awareness */}
+        {user.id && (
+          <div className="presence-bar">
+            <div
+              className="presence-user"
+              style={{ "--lang-accent": lang.accent } as React.CSSProperties}
+            >
+              <span className="presence-dot" />
+              <span>
+                {user.display_name} {lang.flag}
+              </span>
+            </div>
           </div>
-          <div
-            className="presence-user"
-            style={{ "--lang-accent": "#c4522a" } as React.CSSProperties}
-          >
-            <span className="presence-dot" />
-            <span>Yuki 🇯🇵</span>
-          </div>
-        </div>
+        )}
 
         {/* Translation toggle */}
         <button

@@ -1,43 +1,36 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAppStore } from "@/store/useAppStore";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { LanguageBadge } from "@/components/ui/LanguageBadge";
 import { TranslationShimmer } from "@/components/ui/TranslationShimmer";
-import { MessageSquare, Send } from "lucide-react";
+import { MessageSquare, Send, Loader2 } from "lucide-react";
 import type { Editor } from "@tiptap/react";
 
-// Demo comments
-const DEMO_COMMENTS = [
-  {
-    id: "c1",
-    author: { display_name: "Yuki Tanaka", preferred_language: "ja" },
-    content:
-      "この仕様書はとても良くまとまっています。第3セクションにもう少し詳細を追加できますか？",
-    original_language: "ja",
-    created_at: "5 minutes ago",
-  },
-  {
-    id: "c2",
-    author: { display_name: "Maria Silva", preferred_language: "pt" },
-    content:
-      "Concordo com a Yuki. Também precisamos discutir a integração da API.",
-    original_language: "pt",
-    created_at: "3 minutes ago",
-  },
-];
-
-interface CommentItemProps {
-  comment: (typeof DEMO_COMMENTS)[0];
+interface Comment {
+  id: string;
+  content: string;
+  original_language: string;
+  paragraph_id: string | null;
+  resolved: boolean;
+  created_at: string;
+  author: {
+    display_name: string;
+    preferred_language: string;
+    avatar_url: string | null;
+  };
 }
 
-function CommentItem({ comment }: CommentItemProps) {
+function CommentItem({ comment }: { comment: Comment }) {
   const { translated, isLoading, isTranslated } = useTranslation(
     comment.id,
     comment.content,
     comment.original_language,
   );
+
+  const timeAgo = getTimeAgo(comment.created_at);
 
   return (
     <div className="comment-item">
@@ -59,7 +52,7 @@ function CommentItem({ comment }: CommentItemProps) {
             marginLeft: "auto",
           }}
         >
-          {comment.created_at}
+          {timeAgo}
         </span>
       </div>
       {isLoading ? (
@@ -92,8 +85,72 @@ export function CommentSidebar({
   documentId: string;
   editor: Editor | null;
 }) {
+  const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [sending, setSending] = useState(false);
   const user = useAppStore((s) => s.user);
+
+  // Fetch comments from DB
+  const loadComments = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("document_comments")
+      .select(
+        `
+        id,
+        content,
+        original_language,
+        paragraph_id,
+        resolved,
+        created_at,
+        profiles!author_id (
+          display_name,
+          preferred_language,
+          avatar_url
+        )
+      `,
+      )
+      .eq("document_id", documentId)
+      .order("created_at", { ascending: true });
+
+    if (data) {
+      setComments(
+        data.map((row: any) => ({
+          id: row.id,
+          content: row.content,
+          original_language: row.original_language,
+          paragraph_id: row.paragraph_id,
+          resolved: row.resolved,
+          created_at: row.created_at,
+          author: row.profiles,
+        })),
+      );
+    }
+  }, [documentId]);
+
+  useEffect(() => {
+    loadComments();
+  }, [loadComments]);
+
+  // Send new comment
+  const handleSend = async () => {
+    if (!newComment.trim() || !user.id) return;
+    setSending(true);
+
+    const supabase = createClient();
+    const { error } = await supabase.from("document_comments").insert({
+      document_id: documentId,
+      author_id: user.id,
+      content: newComment.trim(),
+      original_language: user.preferred_language,
+    });
+
+    if (!error) {
+      setNewComment("");
+      await loadComments();
+    }
+    setSending(false);
+  };
 
   return (
     <div className="comment-sidebar">
@@ -110,12 +167,25 @@ export function CommentSidebar({
               color: "var(--color-text-2)",
             }}
           >
-            {DEMO_COMMENTS.length}
+            {comments.length}
           </span>
         </div>
       </div>
 
-      {DEMO_COMMENTS.map((comment) => (
+      {comments.length === 0 && (
+        <div
+          style={{
+            padding: "24px 16px",
+            textAlign: "center",
+            color: "var(--color-text-2)",
+            fontSize: "13px",
+          }}
+        >
+          No comments yet. Start the conversation.
+        </div>
+      )}
+
+      {comments.map((comment) => (
         <CommentItem key={comment.id} comment={comment} />
       ))}
 
@@ -127,6 +197,13 @@ export function CommentSidebar({
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             rows={3}
+            disabled={sending}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
           />
           <button
             className="btn btn-sage btn-sm"
@@ -136,12 +213,34 @@ export function CommentSidebar({
               right: "8px",
               padding: "4px 10px",
             }}
-            onClick={() => setNewComment("")}
+            onClick={handleSend}
+            disabled={sending || !newComment.trim()}
           >
-            <Send size={14} />
+            {sending ? (
+              <Loader2
+                size={14}
+                style={{ animation: "spin 1s linear infinite" }}
+              />
+            ) : (
+              <Send size={14} />
+            )}
           </button>
         </div>
       </div>
     </div>
   );
+}
+
+function getTimeAgo(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60000);
+
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHrs = Math.floor(diffMin / 60);
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  const diffDays = Math.floor(diffHrs / 24);
+  return `${diffDays}d ago`;
 }
