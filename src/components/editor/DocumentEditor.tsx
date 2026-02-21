@@ -9,6 +9,7 @@ import * as Y from "yjs";
 import { SupabaseProvider } from "@/lib/yjs/SupabaseProvider";
 import { LanguageAttr } from "@/lib/tiptap/LanguageAttr";
 import { useDocumentTranslation } from "@/hooks/useDocumentTranslation";
+import { useDocumentSync } from "@/hooks/useDocumentSync";
 import { DocumentToolbar } from "./DocumentToolbar";
 import { CommentSidebar } from "./CommentSidebar";
 import { MergePanel } from "./MergePanel";
@@ -53,7 +54,7 @@ export function DocumentEditor({
 
   const ydoc = useMemo(() => new Y.Doc(), [documentId, branchId]);
 
-  // Load pending merge count for owner
+  // Load pending merge count for owner (initial fetch + called on realtime events)
   const loadMergeCount = useCallback(async () => {
     if (!isOwner) return;
     try {
@@ -69,25 +70,30 @@ export function DocumentEditor({
     loadMergeCount();
   }, [loadMergeCount]);
 
-  // Check if main has updates (for collaborators)
-  const checkMainUpdates = useCallback(async () => {
-    if (isOwner || !branchId) return;
-    try {
-      const res = await fetch(
-        `/api/documents/${documentId}/sync?branchId=${branchId}`,
-      );
-      const data = await res.json();
-      setMainHasUpdates(data.hasUpdates ?? false);
-    } catch {
-      /* ignore */
-    }
-  }, [documentId, branchId, isOwner]);
+  // Realtime sync — replaces all polling
+  const handleMainUpdated = useCallback(() => {
+    setMainHasUpdates(true);
+  }, []);
 
-  useEffect(() => {
-    checkMainUpdates();
-    const interval = setInterval(checkMainUpdates, 30000);
-    return () => clearInterval(interval);
-  }, [checkMainUpdates]);
+  const handleBranchStatusChanged = useCallback((status: string) => {
+    setBranchStatus(status);
+    if (status === "active") {
+      setMainHasUpdates(false);
+    }
+  }, []);
+
+  const handleMergeRequestChange = useCallback(() => {
+    loadMergeCount();
+  }, [loadMergeCount]);
+
+  useDocumentSync({
+    documentId,
+    branchId,
+    isOwner,
+    onMainUpdated: handleMainUpdated,
+    onBranchStatusChanged: handleBranchStatusChanged,
+    onMergeRequestChange: handleMergeRequestChange,
+  });
 
   // Autosave title to DB (debounced 1.5s) — owner only
   useEffect(() => {
