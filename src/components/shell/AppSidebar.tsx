@@ -11,9 +11,9 @@ import { CreateBoardModal } from "@/components/modals/CreateBoardModal";
 import { CreateWhiteboardModal } from "@/components/modals/CreateWhiteboardModal";
 import { CreateChannelModal } from "@/components/modals/CreateChannelModal";
 import { InviteModal } from "@/components/modals/InviteModal";
+import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { createClient } from "@/lib/supabase/client";
 import { LogOut, UserPlus } from "lucide-react";
-import Logo from "../ui/logo";
 
 interface AppSidebarProps {
   slug?: string;
@@ -52,13 +52,7 @@ export function AppSidebar({ slug }: AppSidebarProps) {
   return (
     <>
       <aside className="app-sidebar">
-        {/* Brand */}
-        {/* <div className="app-sidebar-brand">
-          <h1>UNISON</h1>
-          <p>Multilingual Collaboration</p>
-        </div> */}
-
-        <Logo />
+        <WorkspaceSwitcher />
 
         {/* Main nav */}
         <div className="sidebar-section">

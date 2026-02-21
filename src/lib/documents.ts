@@ -98,8 +98,9 @@ export async function deleteDocument(docId: string): Promise<void> {
 }
 
 /**
- * Get a document only if the given user has access (owner or invited).
- * Returns the doc and access metadata, or null if forbidden.
+ * Get a document if the given user has access.
+ * Checks in order: document owner → explicit document_access invite → workspace membership.
+ * Workspace members who haven't been explicitly invited are treated as editors (branch collaborators).
  */
 export async function getDocumentWithAccess(
   docId: string,
@@ -125,6 +126,7 @@ export async function getDocumentWithAccess(
     return { doc, isOwner: true, role: "owner" };
   }
 
+  // Check explicit document-level invite
   const { data: access } = await supabase
     .from("document_access")
     .select("role")
@@ -132,7 +134,21 @@ export async function getDocumentWithAccess(
     .eq("user_id", userId)
     .single();
 
-  if (!access) return null;
+  if (access) {
+    return { doc, isOwner: false, role: access.role };
+  }
 
-  return { doc, isOwner: false, role: access.role };
+  // Fall back to workspace membership — any workspace member can access documents
+  const { data: membership } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", doc.workspace_id)
+    .eq("user_id", userId)
+    .single();
+
+  if (membership) {
+    return { doc, isOwner: false, role: "editor" };
+  }
+
+  return null;
 }

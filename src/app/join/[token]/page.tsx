@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 interface JoinPageProps {
   params: Promise<{ token: string }>;
@@ -18,12 +19,11 @@ export default async function JoinPage({ params }: JoinPageProps) {
     redirect(`/auth?next=/join/${token}`);
   }
 
-  // Find workspace by token
-  const { data: workspace } = await supabase
-    .from("workspaces")
-    .select("id, slug")
-    .eq("invite_token", token)
-    .single();
+  // Uses a security-definer RPC to bypass RLS — the user isn't a member yet
+  const { data: rows } = await supabase.rpc("lookup_workspace_by_invite_token", {
+    lookup_token: token,
+  });
+  const workspace = rows?.[0] ?? null;
 
   if (!workspace) {
     return (
@@ -40,9 +40,9 @@ export default async function JoinPage({ params }: JoinPageProps) {
         }}
       >
         <h2>Invalid or expired invite link</h2>
-        <a href="/workspace/select" style={{ color: "var(--color-sage)" }}>
+        <Link href="/workspace/select" className="text-sage hover:underline">
           Go to workspaces →
-        </a>
+        </Link>
       </div>
     );
   }
