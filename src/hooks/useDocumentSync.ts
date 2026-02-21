@@ -25,7 +25,7 @@ export function useDocumentSync({
   onMergeRequestChange,
 }: UseDocumentSyncOptions) {
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const branchUpdatedAtRef = useRef<string | null>(null);
+  const lastKnownMainUpdatedAtRef = useRef<string | null>(null);
 
   const setupSubscription = useCallback(() => {
     const supabase = createClient();
@@ -46,10 +46,13 @@ export function useDocumentSync({
         (payload) => {
           const updatedAt = (payload.new as { updated_at: string }).updated_at;
           if (
-            branchUpdatedAtRef.current &&
-            new Date(updatedAt).getTime() >
-              new Date(branchUpdatedAtRef.current).getTime()
+            lastKnownMainUpdatedAtRef.current &&
+            updatedAt !== lastKnownMainUpdatedAtRef.current
           ) {
+            lastKnownMainUpdatedAtRef.current = updatedAt;
+            onMainUpdated?.(updatedAt);
+          } else if (!lastKnownMainUpdatedAtRef.current) {
+            lastKnownMainUpdatedAtRef.current = updatedAt;
             onMainUpdated?.(updatedAt);
           }
         },
@@ -67,10 +70,19 @@ export function useDocumentSync({
           filter: `id=eq.${branchId}`,
         },
         (payload) => {
-          const newStatus = (payload.new as { status: string; updated_at: string }).status;
-          const newUpdatedAt = (payload.new as { updated_at: string }).updated_at;
-          branchUpdatedAtRef.current = newUpdatedAt;
-          onBranchStatusChanged?.(newStatus);
+          const newRow = payload.new as { status: string; updated_at: string };
+          onBranchStatusChanged?.(newRow.status);
+          // After a rebase/sync, reset the baseline so only future owner edits trigger sync
+          lastKnownMainUpdatedAtRef.current = null;
+          const supabaseInner = createClient();
+          supabaseInner
+            .from("documents")
+            .select("updated_at")
+            .eq("id", documentId)
+            .single()
+            .then(({ data }) => {
+              if (data) lastKnownMainUpdatedAtRef.current = data.updated_at;
+            });
         },
       );
     }
@@ -109,19 +121,19 @@ export function useDocumentSync({
     };
   }, [documentId, branchId, isOwner, onMainUpdated, onBranchStatusChanged, onMergeRequestChange]);
 
-  // Fetch initial branch updated_at for comparison
+  // Fetch the document's current updated_at as the baseline
   useEffect(() => {
-    if (!branchId) return;
+    if (isOwner || !branchId) return;
     const supabase = createClient();
     supabase
-      .from("document_branches")
+      .from("documents")
       .select("updated_at")
-      .eq("id", branchId)
+      .eq("id", documentId)
       .single()
       .then(({ data }) => {
-        if (data) branchUpdatedAtRef.current = data.updated_at;
+        if (data) lastKnownMainUpdatedAtRef.current = data.updated_at;
       });
-  }, [branchId]);
+  }, [documentId, branchId, isOwner]);
 
   useEffect(() => {
     const cleanup = setupSubscription();

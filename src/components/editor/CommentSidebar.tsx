@@ -132,6 +132,28 @@ export function CommentSidebar({
     loadComments();
   }, [loadComments]);
 
+  // Realtime: auto-refresh when any comment is inserted/deleted/updated
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`comments:${documentId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "document_comments",
+          filter: `document_id=eq.${documentId}`,
+        },
+        () => loadComments(),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [documentId, loadComments]);
+
   // Send new comment
   const handleSend = async () => {
     if (!newComment.trim() || !user.id) return;

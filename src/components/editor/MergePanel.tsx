@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Loader2,
   ArrowLeft,
+  Sparkles,
 } from "lucide-react";
 import * as Y from "yjs";
 
@@ -148,10 +149,12 @@ function MergeRequestCard({
   mr,
   documentLanguage,
   onAction,
+  mainContent,
 }: {
   mr: MergeRequestItem;
   documentLanguage: string;
   onAction: () => void;
+  mainContent: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [translatedPreview, setTranslatedPreview] = useState<string | null>(
@@ -161,6 +164,9 @@ function MergeRequestCard({
   const [acting, setActing] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [aiMergedContent, setAiMergedContent] = useState<string | null>(null);
+  const [aiMergeLoading, setAiMergeLoading] = useState(false);
+  const [showAiMerge, setShowAiMerge] = useState(false);
 
   const branchContent = extractTextFromYjs(mr.branch.yjs_state);
 
@@ -183,6 +189,115 @@ function MergeRequestCard({
       setTranslatedPreview("(Translation failed)");
     }
     setTranslating(false);
+  };
+
+  const handleAiMerge = async () => {
+    if (aiMergedContent) {
+      setShowAiMerge(!showAiMerge);
+      return;
+    }
+    setAiMergeLoading(true);
+    setShowAiMerge(true);
+    try {
+      const res = await fetch(`/api/documents/${mr.document_id}/ai-review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mainContent,
+          branchContent: translatedPreview || branchContent,
+          documentLanguage,
+        }),
+      });
+      const data = await res.json();
+      if (data.mergedContent) {
+        setAiMergedContent(data.mergedContent);
+      } else {
+        setAiMergedContent(null);
+        setShowAiMerge(false);
+        alert(data.error || "AI merge failed. Check your Gemini API key.");
+      }
+    } catch {
+      setAiMergedContent(null);
+      setShowAiMerge(false);
+      alert("Network error — could not reach AI merge service.");
+    }
+    setAiMergeLoading(false);
+  };
+
+  const handleApplyAiMerge = async () => {
+    if (!aiMergedContent) return;
+    setActing(true);
+    try {
+      await fetch(`/api/documents/${mr.document_id}/merge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "approve",
+          mergeRequestId: mr.id,
+        }),
+      });
+
+      const supabase = createClient();
+
+      // Build a Yjs doc from the AI-merged plain text
+      const newDoc = new Y.Doc();
+      const fragment = newDoc.getXmlFragment("default");
+      const paragraphs = aiMergedContent.split("\n").filter((p) => p.trim());
+      for (const para of paragraphs) {
+        const el = new Y.XmlElement("paragraph");
+        el.setAttribute("lang", documentLanguage);
+        el.insert(0, [new Y.XmlText(para)]);
+        fragment.push([el]);
+      }
+      const newState = Array.from(Y.encodeStateAsUpdate(newDoc));
+      newDoc.destroy();
+
+      await supabase
+        .from("documents")
+        .update({
+          yjs_state: newState,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", mr.document_id);
+
+      await supabase
+        .from("document_branches")
+        .update({
+          yjs_state: newState,
+          status: "active",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", mr.branch.id);
+
+      const { data: doc } = await supabase
+        .from("documents")
+        .select("title, workspace_id")
+        .eq("id", mr.document_id)
+        .single();
+
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .select("slug")
+        .eq("id", doc?.workspace_id)
+        .single();
+
+      await supabase.from("notifications").insert({
+        user_id: mr.branch.owner.id,
+        type: "merge_approved",
+        title: "Your changes were merged!",
+        body: `Your edits on "${doc?.title || "Untitled"}" have been merged into the main document`,
+        link: ws ? `/workspace/${ws.slug}/docs/${mr.document_id}` : undefined,
+        metadata: {
+          document_id: mr.document_id,
+          branch_id: mr.branch.id,
+        },
+      });
+
+      onAction();
+    } catch (err) {
+      console.error("AI merge apply failed:", err);
+    }
+    setActing(false);
   };
 
   const handleApprove = async () => {
@@ -388,6 +503,71 @@ function MergeRequestCard({
             )}
           </div>
 
+          {/* AI Merge */}
+          <button
+            className="ai-review-btn"
+            onClick={handleAiMerge}
+            disabled={aiMergeLoading || translating}
+          >
+            {aiMergeLoading ? (
+              <Loader2
+                size={13}
+                style={{ animation: "spin 1s linear infinite" }}
+              />
+            ) : (
+              <Sparkles size={13} />
+            )}
+            {aiMergeLoading
+              ? "Generating merge..."
+              : aiMergedContent
+                ? showAiMerge
+                  ? "Hide AI Merge"
+                  : "Show AI Merge"
+                : "AI Merge"}
+          </button>
+
+          {showAiMerge && aiMergedContent && (
+            <div className="ai-review-output">
+              <div className="ai-review-header">
+                <Sparkles size={12} />
+                <span>AI Merged Preview</span>
+              </div>
+              <div className="ai-review-body">
+                {aiMergedContent.split("\n").map((line, i) => (
+                  <p key={i} style={{ margin: "4px 0" }}>
+                    {line || "\u00A0"}
+                  </p>
+                ))}
+              </div>
+              <div
+                style={{
+                  padding: "8px 12px",
+                  borderTop:
+                    "1px solid color-mix(in srgb, var(--color-indigo) 15%, var(--color-bg-2))",
+                }}
+              >
+                <button
+                  className="btn btn-sage btn-sm"
+                  style={{ width: "100%" }}
+                  onClick={handleApplyAiMerge}
+                  disabled={acting}
+                >
+                  {acting ? (
+                    <Loader2
+                      size={13}
+                      style={{ animation: "spin 1s linear infinite" }}
+                    />
+                  ) : (
+                    <>
+                      <Check size={13} />
+                      Apply AI Merge
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
           {showRejectInput ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div
@@ -496,13 +676,26 @@ export function MergePanel({
 }: MergePanelProps) {
   const [mergeRequests, setMergeRequests] = useState<MergeRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mainContent, setMainContent] = useState("");
 
   const loadMergeRequests = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/documents/${documentId}/merge`);
-      const data = await res.json();
-      setMergeRequests(data.mergeRequests ?? []);
+      const [mrRes] = await Promise.all([
+        fetch(`/api/documents/${documentId}/merge`),
+      ]);
+      const mrData = await mrRes.json();
+      setMergeRequests(mrData.mergeRequests ?? []);
+
+      const supabase = createClient();
+      const { data: doc } = await supabase
+        .from("documents")
+        .select("yjs_state")
+        .eq("id", documentId)
+        .single();
+      if (doc?.yjs_state) {
+        setMainContent(extractTextFromYjs(doc.yjs_state));
+      }
     } catch (err) {
       console.error("Failed to load merge requests:", err);
     }
@@ -578,6 +771,7 @@ export function MergePanel({
             mr={mr}
             documentLanguage={documentLanguage}
             onAction={handleAction}
+            mainContent={mainContent}
           />
         ))
       )}

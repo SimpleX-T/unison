@@ -41,3 +41,4 @@ yarn-error.log*
 next-env.d.ts
 
 implementation_plan.md.resolved.0
+package-lock.json

@@ -28,6 +28,7 @@ import {
   FileText,
   Loader2,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { getLanguage } from "@/lib/languages";
 import Link from "next/link";
@@ -53,6 +54,7 @@ interface DocumentToolbarProps {
   mainHasUpdates?: boolean;
   onSyncFromMain?: () => void;
   isSyncing?: boolean;
+  onDeleteClick?: () => void;
 }
 
 function Btn({
@@ -103,6 +105,7 @@ export function DocumentToolbar({
   mainHasUpdates = false,
   onSyncFromMain,
   isSyncing = false,
+  onDeleteClick,
 }: DocumentToolbarProps) {
   const user = useAppStore((s) => s.user);
   const params = useParams();
@@ -233,6 +236,16 @@ export function DocumentToolbar({
               Submit for Review
             </button>
           )}
+
+        {onDeleteClick && (
+          <button
+            className="doc-toolbar-action-btn destructive"
+            onClick={onDeleteClick}
+            title={isOwner ? "Delete document" : "Leave document"}
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
 
         <button
           className={`doc-translate-btn ${isTranslatedMode ? "active" : ""}`}

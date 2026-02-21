@@ -14,6 +14,7 @@ import { DocumentToolbar } from "./DocumentToolbar";
 import { CommentSidebar } from "./CommentSidebar";
 import { MergePanel } from "./MergePanel";
 import { InviteDocumentModal } from "@/components/modals/InviteDocumentModal";
+import { DeleteDocumentModal } from "@/components/modals/DeleteDocumentModal";
 import { useAppStore } from "@/store/useAppStore";
 import { getLanguage } from "@/lib/languages";
 
@@ -43,6 +44,7 @@ export function DocumentEditor({
   );
   const [showMergePanel, setShowMergePanel] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [pendingMergeCount, setPendingMergeCount] = useState(0);
   const [branchStatus, setBranchStatus] = useState<string>(
     branchId ? "active" : "",
@@ -260,6 +262,7 @@ export function DocumentEditor({
         mainHasUpdates={mainHasUpdates}
         onSyncFromMain={handleSyncFromMain}
         isSyncing={isSyncing}
+        onDeleteClick={() => setShowDeleteModal(true)}
       />
 
       <div className="document-body">
@@ -282,6 +285,15 @@ export function DocumentEditor({
         <InviteDocumentModal
           documentId={documentId}
           onClose={() => setShowInviteModal(false)}
+        />
+      )}
+
+      {showDeleteModal && (
+        <DeleteDocumentModal
+          documentId={documentId}
+          documentTitle={title}
+          isOwner={isOwner}
+          onClose={() => setShowDeleteModal(false)}
         />
       )}
     </div>

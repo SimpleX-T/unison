@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceBySlug } from "@/lib/workspaces";
 import { getDocuments } from "@/lib/documents";
-import { FileText, Plus, Clock } from "lucide-react";
+import { FileText } from "lucide-react";
 import { NewDocumentButton } from "./NewDocumentButton";
+import { DocumentCard } from "./DocumentCard";
 
 interface DocsPageProps {
   params: Promise<{ slug: string }>;
@@ -61,35 +61,12 @@ export default async function DocsListPage({ params }: DocsPageProps) {
           </div>
         ) : (
           docs.map((doc) => (
-            <Link
+            <DocumentCard
               key={doc.id}
-              href={`/workspace/${slug}/docs/${doc.id}`}
-              className="dashboard-card"
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  marginBottom: 10,
-                }}
-              >
-                <FileText size={18} style={{ color: "var(--color-sage)" }} />
-                <h3>{doc.title}</h3>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: 12,
-                  color: "var(--color-text-2)",
-                }}
-              >
-                <Clock size={12} />
-                <span>{new Date(doc.updated_at).toLocaleDateString()}</span>
-              </div>
-            </Link>
+              doc={doc}
+              slug={slug}
+              currentUserId={user.id}
+            />
           ))
         )}
       </div>

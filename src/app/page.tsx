@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
@@ -9,8 +10,8 @@ import {
   ArrowRight,
   Languages,
   Users,
-  Zap,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 const LANGUAGES_DEMO = [
   { flag: "🇬🇧", name: "English", text: "Collaborate without barriers" },
@@ -46,6 +47,29 @@ const FEATURES = [
 ];
 
 export default function LandingPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [dashboardUrl, setDashboardUrl] = useState("/auth");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      setIsLoggedIn(true);
+      const { data: membership } = await supabase
+        .from("workspace_members")
+        .select("workspace_id, workspaces!workspace_id(slug)")
+        .eq("user_id", user.id)
+        .limit(1)
+        .single();
+      if (membership?.workspaces) {
+        const ws = membership.workspaces as unknown as { slug: string };
+        setDashboardUrl(`/workspace/${ws.slug}`);
+      } else {
+        setDashboardUrl("/onboarding");
+      }
+    });
+  }, []);
+
   return (
     <div
       style={{
@@ -79,17 +103,26 @@ export default function LandingPage() {
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <Link
-            href="/auth"
-            className="btn btn-ghost"
-            style={{ fontSize: "14px" }}
-          >
-            Sign in
-          </Link>
-          <Link href="/auth" className="btn btn-primary">
-            Get Started
-            <ArrowRight size={16} />
-          </Link>
+          {isLoggedIn ? (
+            <Link href={dashboardUrl} className="btn btn-primary">
+              Go to Workspace
+              <ArrowRight size={16} />
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/auth"
+                className="btn btn-ghost"
+                style={{ fontSize: "14px" }}
+              >
+                Sign in
+              </Link>
+              <Link href="/auth" className="btn btn-primary">
+                Get Started
+                <ArrowRight size={16} />
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -167,21 +200,34 @@ export default function LandingPage() {
           <div
             style={{ display: "flex", gap: "12px", justifyContent: "center" }}
           >
-            <Link
-              href="/auth"
-              className="btn btn-sage"
-              style={{ padding: "14px 28px", fontSize: "16px" }}
-            >
-              Open Workspace
-              <ArrowRight size={18} />
-            </Link>
-            <Link
-              href="/auth"
-              className="btn btn-secondary"
-              style={{ padding: "14px 28px", fontSize: "16px" }}
-            >
-              Sign Up Free
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                href={dashboardUrl}
+                className="btn btn-sage"
+                style={{ padding: "14px 28px", fontSize: "16px" }}
+              >
+                Go to Workspace
+                <ArrowRight size={18} />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth"
+                  className="btn btn-sage"
+                  style={{ padding: "14px 28px", fontSize: "16px" }}
+                >
+                  Open Workspace
+                  <ArrowRight size={18} />
+                </Link>
+                <Link
+                  href="/auth"
+                  className="btn btn-secondary"
+                  style={{ padding: "14px 28px", fontSize: "16px" }}
+                >
+                  Sign Up Free
+                </Link>
+              </>
+            )}
           </div>
         </motion.div>
 
@@ -707,11 +753,11 @@ export default function LandingPage() {
           />
 
           <blockquote
+            className="text-gray-500"
             style={{
               fontFamily: "var(--font-body)",
               fontSize: "20px",
               lineHeight: 1.6,
-              color: "rgba(249, 248, 246, 0.85)",
               maxWidth: "700px",
               margin: "0 auto 32px",
               fontStyle: "italic",
@@ -725,7 +771,7 @@ export default function LandingPage() {
           </blockquote>
 
           <Link
-            href="/auth"
+            href={isLoggedIn ? dashboardUrl : "/auth"}
             className="btn"
             style={{
               background: "var(--color-sage)",
@@ -735,7 +781,7 @@ export default function LandingPage() {
               position: "relative",
             }}
           >
-            Get Started
+            {isLoggedIn ? "Go to Workspace" : "Get Started"}
             <ArrowRight size={18} />
           </Link>
         </motion.div>
