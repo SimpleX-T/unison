@@ -9,11 +9,13 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 import { CreateDocumentModal } from "@/components/modals/CreateDocumentModal";
 import { CreateBoardModal } from "@/components/modals/CreateBoardModal";
 import { CreateWhiteboardModal } from "@/components/modals/CreateWhiteboardModal";
+import { CreateChannelModal } from "@/components/modals/CreateChannelModal";
+import { InviteModal } from "@/components/modals/InviteModal";
 import { createClient } from "@/lib/supabase/client";
-import { LogOut } from "lucide-react";
+import { LogOut, UserPlus } from "lucide-react";
+import Logo from "../ui/logo";
 
 interface AppSidebarProps {
-  /** Workspace slug — inferred from the URL so it's always in sync */
   slug?: string;
 }
 
@@ -31,9 +33,9 @@ export function AppSidebar({ slug }: AppSidebarProps) {
   const user = useAppStore((s) => s.user);
   const { t } = useUITranslation();
   const { resolved, toggle } = useTheme();
-  const [modal, setModal] = useState<"doc" | "board" | "whiteboard" | null>(
-    null,
-  );
+  const [modal, setModal] = useState<
+    "doc" | "board" | "whiteboard" | "channel" | "invite" | null
+  >(null);
   const [signingOut, setSigningOut] = useState(false);
 
   const closeModal = useCallback(() => setModal(null), []);
@@ -51,10 +53,12 @@ export function AppSidebar({ slug }: AppSidebarProps) {
     <>
       <aside className="app-sidebar">
         {/* Brand */}
-        <div className="app-sidebar-brand">
+        {/* <div className="app-sidebar-brand">
           <h1>UNISON</h1>
           <p>Multilingual Collaboration</p>
-        </div>
+        </div> */}
+
+        <Logo />
 
         {/* Main nav */}
         <div className="sidebar-section">
@@ -91,6 +95,29 @@ export function AppSidebar({ slug }: AppSidebarProps) {
             onClick={() => setModal("whiteboard")}
           >
             + {t("sidebar.newWhiteboard")}
+          </button>
+          <button
+            className="sidebar-add-btn"
+            onClick={() => setModal("channel")}
+          >
+            + New Channel
+          </button>
+        </div>
+
+        {/* Invite */}
+        <div className="sidebar-section">
+          <button
+            className="sidebar-add-btn"
+            onClick={() => setModal("invite")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              color: "var(--color-sage)",
+            }}
+          >
+            <UserPlus size={14} />
+            Invite People
           </button>
         </div>
 
@@ -159,6 +186,8 @@ export function AppSidebar({ slug }: AppSidebarProps) {
       {modal === "doc" && <CreateDocumentModal onClose={closeModal} />}
       {modal === "board" && <CreateBoardModal onClose={closeModal} />}
       {modal === "whiteboard" && <CreateWhiteboardModal onClose={closeModal} />}
+      {modal === "channel" && <CreateChannelModal onClose={closeModal} />}
+      {modal === "invite" && <InviteModal onClose={closeModal} />}
     </>
   );
 }

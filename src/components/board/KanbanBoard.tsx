@@ -181,7 +181,10 @@ export function KanbanBoard({
                           marginRight: 8,
                         }}
                       />
-                      {column.name} ({column.tasks.length})
+                      {columnTitleKeys[idx]
+                        ? t(columnTitleKeys[idx])
+                        : column.name}{" "}
+                      ({column.tasks.length})
                     </span>
                     <button
                       className="sidebar-add-btn"

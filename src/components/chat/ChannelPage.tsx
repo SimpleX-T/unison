@@ -3,6 +3,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/store/useAppStore";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { LanguageBadge } from "@/components/ui/LanguageBadge";
+import { useTranslation } from "@/hooks/useTranslation";
 import type { MessageRow } from "@/lib/chat";
 import { Send, Loader2 } from "lucide-react";
 
@@ -17,19 +19,89 @@ function formatTime(iso: string) {
   }).format(new Date(iso));
 }
 
+/** Individual message with auto-translation */
+function ChatMessage({ msg }: { msg: MessageRow }) {
+  const { translated, isLoading, isTranslated } = useTranslation(
+    msg.id,
+    msg.content,
+    msg.original_language,
+  );
+
+  return (
+    <div className="chat-message">
+      <UserAvatar
+        name={msg.sender?.display_name ?? "?"}
+        languageCode={msg.original_language}
+        size="md"
+      />
+      <div className="chat-message-content">
+        <p className="chat-message-author">
+          {msg.sender?.display_name ?? "Unknown"}
+          <LanguageBadge
+            languageCode={msg.original_language}
+            showName={false}
+          />
+          <span
+            style={{
+              fontSize: 11,
+              color: "var(--color-text-2)",
+              marginLeft: 8,
+            }}
+          >
+            {formatTime(msg.created_at)}
+          </span>
+        </p>
+        {isLoading ? (
+          <p className="chat-message-text" style={{ opacity: 0.5 }}>
+            Translating…
+          </p>
+        ) : (
+          <>
+            <p className="chat-message-text">{translated}</p>
+            {isTranslated && (
+              <p
+                style={{
+                  fontSize: 11,
+                  color: "var(--color-text-2)",
+                  fontStyle: "italic",
+                  marginTop: 2,
+                }}
+                title={msg.content}
+              >
+                Translated from {msg.original_language.toUpperCase()}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function ChannelPage({ channelId }: ChannelPageProps) {
   const user = useAppStore((s) => s.user);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [channelName, setChannelName] = useState("");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
-  // Fetch initial messages with sender profile
+  // Fetch channel name + initial messages
   useEffect(() => {
     const load = async () => {
       setLoading(true);
+
+      // Get channel name
+      const { data: ch } = await supabase
+        .from("channels")
+        .select("name")
+        .eq("id", channelId)
+        .single();
+      if (ch) setChannelName(ch.name);
+
+      // Get messages
       const { data } = await supabase
         .from("messages")
         .select(
@@ -79,7 +151,6 @@ export function ChannelPage({ channelId }: ChannelPageProps) {
             created_at: string;
             channel_id: string;
           };
-          // Fetch sender profile for the new message
           const { data: profile } = await supabase
             .from("profiles")
             .select("id, display_name, avatar_url, preferred_language")
@@ -105,7 +176,7 @@ export function ChannelPage({ channelId }: ChannelPageProps) {
     };
   }, [channelId]);
 
-  // Auto-scroll to bottom
+  // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -143,7 +214,7 @@ export function ChannelPage({ channelId }: ChannelPageProps) {
             fontSize: 18,
           }}
         >
-          # {channelId}
+          # {channelName || channelId}
         </span>
       </div>
 
@@ -172,30 +243,7 @@ export function ChannelPage({ channelId }: ChannelPageProps) {
             No messages yet. Say something! 👋
           </div>
         ) : (
-          messages.map((msg) => (
-            <div className="chat-message" key={msg.id}>
-              <UserAvatar
-                name={msg.sender?.display_name ?? "?"}
-                languageCode={msg.original_language}
-                size="md"
-              />
-              <div className="chat-message-content">
-                <p className="chat-message-author">
-                  {msg.sender?.display_name ?? "Unknown"}
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: "var(--color-text-2)",
-                      marginLeft: 8,
-                    }}
-                  >
-                    {formatTime(msg.created_at)}
-                  </span>
-                </p>
-                <p className="chat-message-text">{msg.content}</p>
-              </div>
-            </div>
-          ))
+          messages.map((msg) => <ChatMessage key={msg.id} msg={msg} />)
         )}
         <div ref={bottomRef} />
       </div>

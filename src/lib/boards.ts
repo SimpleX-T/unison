@@ -13,6 +13,7 @@ export interface BoardColumnRow {
   id: string;
   board_id: string;
   name: string;
+  name_original_language: string;
   position: number;
   color: string | null;
 }
@@ -24,6 +25,7 @@ export interface TaskRow {
   title: string;
   title_original_language: string;
   description: string | null;
+  description_original_language: string | null;
   assignee_id: string | null;
   position: number;
   priority: "low" | "medium" | "high" | "urgent";

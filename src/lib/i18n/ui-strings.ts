@@ -35,7 +35,13 @@ export type UIStringKey =
   | "common.title"
   | "common.description"
   | "chat.typeMessage"
-  | "chat.channels";
+  | "chat.channels"
+  | "dashboard.documents"
+  | "dashboard.boards"
+  | "dashboard.channels"
+  | "boards.title"
+  | "boards.subtitle"
+  | "boards.empty";
 
 type UIStrings = Record<UIStringKey, string>;
 
@@ -76,6 +82,12 @@ const strings: Record<string, UIStrings> = {
     "common.description": "Description",
     "chat.typeMessage": "Type a message…",
     "chat.channels": "Channels",
+    "dashboard.documents": "Documents",
+    "dashboard.boards": "Boards",
+    "dashboard.channels": "Channels",
+    "boards.title": "Boards",
+    "boards.subtitle": "Sprint boards and task tracking for your team.",
+    "boards.empty": "No boards yet. Create one from the sidebar.",
   },
   ja: {
     "sidebar.home": "ホーム",
@@ -113,6 +125,12 @@ const strings: Record<string, UIStrings> = {
     "common.description": "説明",
     "chat.typeMessage": "メッセージを入力…",
     "chat.channels": "チャンネル",
+    "dashboard.documents": "ドキュメント",
+    "dashboard.boards": "ボード",
+    "dashboard.channels": "チャンネル",
+    "boards.title": "ボード",
+    "boards.subtitle": "チームのスプリントボードとタスク管理。",
+    "boards.empty": "ボードはまだありません。サイドバーから作成してください。",
   },
   es: {
     "sidebar.home": "Inicio",
@@ -150,6 +168,12 @@ const strings: Record<string, UIStrings> = {
     "common.description": "Descripción",
     "chat.typeMessage": "Escribe un mensaje…",
     "chat.channels": "Canales",
+    "dashboard.documents": "Documentos",
+    "dashboard.boards": "Tableros",
+    "dashboard.channels": "Canales",
+    "boards.title": "Tableros",
+    "boards.subtitle": "Tableros de sprint y seguimiento de tareas.",
+    "boards.empty": "Aún no hay tableros. Crea uno desde la barra lateral.",
   },
   fr: {
     "sidebar.home": "Accueil",
@@ -187,6 +211,12 @@ const strings: Record<string, UIStrings> = {
     "common.description": "Description",
     "chat.typeMessage": "Tapez un message…",
     "chat.channels": "Canaux",
+    "dashboard.documents": "Documents",
+    "dashboard.boards": "Tableaux",
+    "dashboard.channels": "Canaux",
+    "boards.title": "Tableaux",
+    "boards.subtitle": "Tableaux de sprint et suivi des tâches.",
+    "boards.empty": "Aucun tableau. Créez-en un depuis la barre latérale.",
   },
   de: {
     "sidebar.home": "Startseite",
@@ -224,6 +254,13 @@ const strings: Record<string, UIStrings> = {
     "common.description": "Beschreibung",
     "chat.typeMessage": "Nachricht eingeben…",
     "chat.channels": "Kanäle",
+    "dashboard.documents": "Dokumente",
+    "dashboard.boards": "Boards",
+    "dashboard.channels": "Kanäle",
+    "boards.title": "Boards",
+    "boards.subtitle": "Sprint-Boards und Aufgabenverfolgung.",
+    "boards.empty":
+      "Noch keine Boards. Erstellen Sie eins in der Seitenleiste.",
   },
   pt: {
     "sidebar.home": "Início",
@@ -261,6 +298,12 @@ const strings: Record<string, UIStrings> = {
     "common.description": "Descrição",
     "chat.typeMessage": "Digite uma mensagem…",
     "chat.channels": "Canais",
+    "dashboard.documents": "Documentos",
+    "dashboard.boards": "Quadros",
+    "dashboard.channels": "Canais",
+    "boards.title": "Quadros",
+    "boards.subtitle": "Quadros de sprint e acompanhamento de tarefas.",
+    "boards.empty": "Nenhum quadro ainda. Crie um na barra lateral.",
   },
   zh: {
     "sidebar.home": "首页",
@@ -297,6 +340,12 @@ const strings: Record<string, UIStrings> = {
     "common.description": "描述",
     "chat.typeMessage": "输入消息…",
     "chat.channels": "频道",
+    "dashboard.documents": "文档",
+    "dashboard.boards": "看板",
+    "dashboard.channels": "频道",
+    "boards.title": "看板",
+    "boards.subtitle": "团队冲刺看板和任务跟踪。",
+    "boards.empty": "还没有看板。从侧边栏创建一个。",
   },
   ko: {
     "sidebar.home": "홈",
@@ -334,6 +383,12 @@ const strings: Record<string, UIStrings> = {
     "common.description": "설명",
     "chat.typeMessage": "메시지를 입력하세요…",
     "chat.channels": "채널",
+    "dashboard.documents": "문서",
+    "dashboard.boards": "보드",
+    "dashboard.channels": "채널",
+    "boards.title": "보드",
+    "boards.subtitle": "팀 스프린트 보드 및 작업 추적.",
+    "boards.empty": "보드가 아직 없습니다. 사이드바에서 만드세요.",
   },
   ar: {
     "sidebar.home": "الرئيسية",
@@ -370,6 +425,12 @@ const strings: Record<string, UIStrings> = {
     "common.description": "الوصف",
     "chat.typeMessage": "اكتب رسالة…",
     "chat.channels": "القنوات",
+    "dashboard.documents": "المستندات",
+    "dashboard.boards": "اللوحات",
+    "dashboard.channels": "القنوات",
+    "boards.title": "اللوحات",
+    "boards.subtitle": "لوحات سبرنت وتتبع المهام لفريقك.",
+    "boards.empty": "لا توجد لوحات بعد. أنشئ واحدة من الشريط الجانبي.",
   },
   hi: {
     "sidebar.home": "होम",
@@ -407,6 +468,12 @@ const strings: Record<string, UIStrings> = {
     "common.description": "विवरण",
     "chat.typeMessage": "संदेश लिखें…",
     "chat.channels": "चैनल",
+    "dashboard.documents": "दस्तावेज़",
+    "dashboard.boards": "बोर्ड",
+    "dashboard.channels": "चैनल",
+    "boards.title": "बोर्ड",
+    "boards.subtitle": "आपकी टीम के लिए स्प्रिंट बोर्ड और कार्य ट्रैकिंग।",
+    "boards.empty": "अभी कोई बोर्ड नहीं है। साइडबार से एक बनाएँ।",
   },
   ru: {
     "sidebar.home": "Главная",
@@ -444,6 +511,12 @@ const strings: Record<string, UIStrings> = {
     "common.description": "Описание",
     "chat.typeMessage": "Введите сообщение…",
     "chat.channels": "Каналы",
+    "dashboard.documents": "Документы",
+    "dashboard.boards": "Доски",
+    "dashboard.channels": "Каналы",
+    "boards.title": "Доски",
+    "boards.subtitle": "Спринт-доски и отслеживание задач.",
+    "boards.empty": "Досок пока нет. Создайте одну в боковой панели.",
   },
   it: {
     "sidebar.home": "Home",
@@ -481,6 +554,12 @@ const strings: Record<string, UIStrings> = {
     "common.description": "Descrizione",
     "chat.typeMessage": "Scrivi un messaggio…",
     "chat.channels": "Canali",
+    "dashboard.documents": "Documenti",
+    "dashboard.boards": "Bacheche",
+    "dashboard.channels": "Canali",
+    "boards.title": "Bacheche",
+    "boards.subtitle": "Bacheche sprint e monitoraggio delle attività.",
+    "boards.empty": "Nessuna bacheca. Creane una dalla barra laterale.",
   },
 };
 
