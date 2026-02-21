@@ -776,6 +776,7 @@ body {
   border-right: 1px solid var(--color-bg-2);
   display: flex;
   flex-direction: column;
+  z-index: 20;
   flex-shrink: 0;
   overflow-y: auto;
   transition: transform 0.3s ease;
@@ -1065,7 +1066,8 @@ body {
   z-index: 100;
 }
 
-.modal-content {
+.modal-content,
+.modal-card {
   background: var(--color-bg-0);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
@@ -1074,6 +1076,7 @@ body {
   max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
+  border: 1px solid var(--color-bg-2);
 }
 
 .modal-title {
@@ -1662,15 +1665,30 @@ body {
   line-height: 1.6;
 }
 
-.merge-preview-content {
-  background: var(--color-bg-1);
-  border-radius: var(--radius-sm);
-  padding: 12px;
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid var(--color-bg-2);
-  font-size: 13px;
-  line-height: 1.6;
+.doc-sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--color-gold);
+  background: rgba(196, 154, 60, 0.1);
+  color: var(--color-gold);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.doc-sync-btn:hover:not(:disabled) {
+  background: rgba(196, 154, 60, 0.2);
+}
+
+.doc-sync-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ─────────────────────────────────────────
@@ -1902,19 +1920,16 @@ body {
 }
 
 .notif-dropdown {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  width: 320px;
+  position: fixed;
+  width: 340px;
   max-height: 420px;
   background: var(--color-bg-0);
   border: 1px solid var(--color-bg-2);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
-  z-index: 200;
+  z-index: 300;
   display: flex;
   flex-direction: column;
-  margin-bottom: 8px;
 }
 
 .notif-dropdown-header {

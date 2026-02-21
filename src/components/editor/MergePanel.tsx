@@ -197,15 +197,16 @@ function MergeRequestCard({
         }),
       });
 
+      const supabase = createClient();
+
       if (mr.branch.yjs_state) {
-        // Translate the branch Yjs tree to the document language, then save as main
         const translatedState = await translateYjsState(
           mr.branch.yjs_state,
           mr.branch.language,
           documentLanguage,
         );
 
-        const supabase = createClient();
+        // Save translated content as the new main document state
         await supabase
           .from("documents")
           .update({
@@ -213,7 +214,42 @@ function MergeRequestCard({
             updated_at: new Date().toISOString(),
           })
           .eq("id", mr.document_id);
+
+        // Auto-rebase: reset the collaborator's branch to the new main state
+        await supabase
+          .from("document_branches")
+          .update({
+            yjs_state: translatedState,
+            status: "active",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", mr.branch.id);
       }
+
+      // Notify the collaborator that their changes were merged
+      const { data: doc } = await supabase
+        .from("documents")
+        .select("title, workspace_id")
+        .eq("id", mr.document_id)
+        .single();
+
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .select("slug")
+        .eq("id", doc?.workspace_id)
+        .single();
+
+      await supabase.from("notifications").insert({
+        user_id: mr.branch.owner.id,
+        type: "merge_approved",
+        title: "Your changes were merged!",
+        body: `Your edits on "${doc?.title || "Untitled"}" have been merged into the main document`,
+        link: ws ? `/workspace/${ws.slug}/docs/${mr.document_id}` : undefined,
+        metadata: {
+          document_id: mr.document_id,
+          branch_id: mr.branch.id,
+        },
+      });
 
       onAction();
     } catch (err) {
@@ -234,6 +270,36 @@ function MergeRequestCard({
           note: rejectNote || undefined,
         }),
       });
+
+      // Notify the collaborator their merge was rejected
+      const supabase = createClient();
+      const { data: doc } = await supabase
+        .from("documents")
+        .select("title, workspace_id")
+        .eq("id", mr.document_id)
+        .single();
+
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .select("slug")
+        .eq("id", doc?.workspace_id)
+        .single();
+
+      await supabase.from("notifications").insert({
+        user_id: mr.branch.owner.id,
+        type: "merge_rejected",
+        title: "Your changes need revision",
+        body: rejectNote
+          ? `Feedback on "${doc?.title || "Untitled"}": ${rejectNote}`
+          : `Your edits on "${doc?.title || "Untitled"}" were sent back for revision`,
+        link: ws ? `/workspace/${ws.slug}/docs/${mr.document_id}` : undefined,
+        metadata: {
+          document_id: mr.document_id,
+          branch_id: mr.branch.id,
+          note: rejectNote || null,
+        },
+      });
+
       onAction();
     } catch (err) {
       console.error("Reject failed:", err);

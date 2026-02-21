@@ -27,6 +27,7 @@ import {
   Send,
   FileText,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { getLanguage } from "@/lib/languages";
 import Link from "next/link";
@@ -49,6 +50,9 @@ interface DocumentToolbarProps {
   onInviteClick?: () => void;
   onSubmitForReview?: () => void;
   isSubmitting?: boolean;
+  mainHasUpdates?: boolean;
+  onSyncFromMain?: () => void;
+  isSyncing?: boolean;
 }
 
 function Btn({
@@ -96,6 +100,9 @@ export function DocumentToolbar({
   onInviteClick,
   onSubmitForReview,
   isSubmitting = false,
+  mainHasUpdates = false,
+  onSyncFromMain,
+  isSyncing = false,
 }: DocumentToolbarProps) {
   const user = useAppStore((s) => s.user);
   const params = useParams();
@@ -143,6 +150,22 @@ export function DocumentToolbar({
               <span>Main</span>
             </span>
           )
+        )}
+
+        {/* Sync from main button for collaborators */}
+        {!isOwner && branchId && mainHasUpdates && onSyncFromMain && (
+          <button
+            className="doc-sync-btn"
+            onClick={onSyncFromMain}
+            disabled={isSyncing || branchStatus === "submitted"}
+            title="Pull latest changes from main"
+          >
+            <RefreshCw
+              size={12}
+              style={isSyncing ? { animation: "spin 1s linear infinite" } : undefined}
+            />
+            {isSyncing ? "Syncing..." : "Sync from main"}
+          </button>
         )}
 
         <div className="doc-toolbar-spacer" />

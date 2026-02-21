@@ -8,7 +8,8 @@ import {
   FileText,
   GitMerge,
   Check,
-  X,
+  UserPlus,
+  Users,
 } from "lucide-react";
 
 interface NotificationItem {
@@ -27,7 +28,9 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -73,13 +76,23 @@ export function NotificationBell() {
     };
   }, [user.id]);
 
+  // Position the fixed dropdown relative to the bell button
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    setDropdownStyle({
+      left: rect.left,
+      bottom: window.innerHeight - rect.top + 8,
+    });
+  }, [open]);
+
   // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handleClick = (e: MouseEvent) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target as Node)
       ) {
         setOpen(false);
       }
@@ -119,15 +132,23 @@ export function NotificationBell() {
       case "document_invite":
         return <FileText size={14} />;
       case "merge_request":
+      case "merge_approved":
+      case "merge_rejected":
+      case "branch_rebased":
         return <GitMerge size={14} />;
+      case "workspace_join":
+        return <Users size={14} />;
+      case "collaborator_invited":
+        return <UserPlus size={14} />;
       default:
         return <Bell size={14} />;
     }
   };
 
   return (
-    <div className="notif-bell-wrapper" ref={dropdownRef}>
+    <div className="notif-bell-wrapper" ref={wrapperRef}>
       <button
+        ref={btnRef}
         className="notif-bell-btn"
         onClick={() => {
           setOpen(!open);
@@ -141,7 +162,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="notif-dropdown">
+        <div className="notif-dropdown" style={dropdownStyle}>
           <div className="notif-dropdown-header">
             <span>Notifications</span>
             {unreadCount > 0 && (

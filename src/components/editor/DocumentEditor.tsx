@@ -47,6 +47,8 @@ export function DocumentEditor({
     branchId ? "active" : "",
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mainHasUpdates, setMainHasUpdates] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const providerRef = useRef<SupabaseProvider | null>(null);
 
   const ydoc = useMemo(() => new Y.Doc(), [documentId, branchId]);
@@ -66,6 +68,26 @@ export function DocumentEditor({
   useEffect(() => {
     loadMergeCount();
   }, [loadMergeCount]);
+
+  // Check if main has updates (for collaborators)
+  const checkMainUpdates = useCallback(async () => {
+    if (isOwner || !branchId) return;
+    try {
+      const res = await fetch(
+        `/api/documents/${documentId}/sync?branchId=${branchId}`,
+      );
+      const data = await res.json();
+      setMainHasUpdates(data.hasUpdates ?? false);
+    } catch {
+      /* ignore */
+    }
+  }, [documentId, branchId, isOwner]);
+
+  useEffect(() => {
+    checkMainUpdates();
+    const interval = setInterval(checkMainUpdates, 30000);
+    return () => clearInterval(interval);
+  }, [checkMainUpdates]);
 
   // Autosave title to DB (debounced 1.5s) — owner only
   useEffect(() => {
@@ -138,6 +160,25 @@ export function DocumentEditor({
     setIsSubmitting(false);
   };
 
+  const handleSyncFromMain = async () => {
+    if (!branchId) return;
+    setIsSyncing(true);
+    try {
+      const res = await fetch(`/api/documents/${documentId}/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ branchId }),
+      });
+      if (res.ok) {
+        setMainHasUpdates(false);
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error("Sync failed:", err);
+    }
+    setIsSyncing(false);
+  };
+
   const editor = useEditor(
     {
       immediatelyRender: false,
@@ -202,6 +243,9 @@ export function DocumentEditor({
         onInviteClick={() => setShowInviteModal(true)}
         onSubmitForReview={handleSubmitForReview}
         isSubmitting={isSubmitting}
+        mainHasUpdates={mainHasUpdates}
+        onSyncFromMain={handleSyncFromMain}
+        isSyncing={isSyncing}
       />
 
       <div className="document-body">
