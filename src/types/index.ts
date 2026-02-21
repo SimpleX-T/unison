@@ -167,6 +167,18 @@ export interface BranchSnapshot {
   created_at: string;
 }
 
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  read: boolean;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
 export interface MergeRequest {
   id: string;
   branch_id: string;

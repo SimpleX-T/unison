@@ -19,7 +19,7 @@ export async function POST(
 
   const { data: doc } = await supabase
     .from("documents")
-    .select("created_by")
+    .select("created_by, title, workspace_id")
     .eq("id", docId)
     .single();
 
@@ -38,6 +38,34 @@ export async function POST(
   if (result.error) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
+
+  // Get workspace slug for the notification link
+  const { data: ws } = await supabase
+    .from("workspaces")
+    .select("slug")
+    .eq("id", doc.workspace_id)
+    .single();
+
+  const { data: inviterProfile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .single();
+
+  const inviterName = inviterProfile?.display_name || "Someone";
+  const docTitle = doc.title || "Untitled";
+  const link = ws
+    ? `/workspace/${ws.slug}/docs/${docId}`
+    : undefined;
+
+  await supabase.from("notifications").insert({
+    user_id: userId,
+    type: "document_invite",
+    title: `${inviterName} shared a document with you`,
+    body: `You've been invited as ${role} on "${docTitle}"`,
+    link,
+    metadata: { document_id: docId, invited_by: user.id, role },
+  });
 
   return NextResponse.json({ success: true });
 }

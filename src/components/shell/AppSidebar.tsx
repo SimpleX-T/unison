@@ -12,6 +12,7 @@ import { CreateWhiteboardModal } from "@/components/modals/CreateWhiteboardModal
 import { CreateChannelModal } from "@/components/modals/CreateChannelModal";
 import { InviteModal } from "@/components/modals/InviteModal";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { NotificationBell } from "./NotificationBell";
 import { createClient } from "@/lib/supabase/client";
 import { LogOut, UserPlus } from "lucide-react";
 
@@ -124,6 +125,7 @@ export function AppSidebar({ slug }: AppSidebarProps) {
             <span className="sidebar-user-name">
               {user.display_name || "Loading…"}
             </span>
+            <NotificationBell />
           </div>
 
           {/* Theme toggle */}

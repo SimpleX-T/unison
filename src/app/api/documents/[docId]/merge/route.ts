@@ -54,6 +54,37 @@ export async function POST(
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
+
+    // Notify the document owner about the merge request
+    const { data: doc } = await supabase
+      .from("documents")
+      .select("created_by, title, workspace_id")
+      .eq("id", docId)
+      .single();
+
+    if (doc) {
+      const { data: submitterProfile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .single();
+
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .select("slug")
+        .eq("id", doc.workspace_id)
+        .single();
+
+      await supabase.from("notifications").insert({
+        user_id: doc.created_by,
+        type: "merge_request",
+        title: `${submitterProfile?.display_name || "A collaborator"} submitted changes for review`,
+        body: `Changes on "${doc.title || "Untitled"}" are ready to merge`,
+        link: ws ? `/workspace/${ws.slug}/docs/${docId}` : undefined,
+        metadata: { document_id: docId, branch_id: branchId, submitted_by: user.id },
+      });
+    }
+
     return NextResponse.json({ success: true });
   }
 

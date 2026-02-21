@@ -52,6 +52,98 @@ function extractTextFromYjs(yjsState: number[] | null): string {
   }
 }
 
+/**
+ * Walk a Y.XmlFragment, collect text from each block node,
+ * batch-translate, and write the translations back in place.
+ * Returns the updated Yjs state as a number array.
+ */
+async function translateYjsState(
+  yjsState: number[],
+  fromLanguage: string,
+  toLanguage: string,
+): Promise<number[]> {
+  if (fromLanguage === toLanguage) return yjsState;
+
+  const doc = new Y.Doc();
+  Y.applyUpdate(doc, new Uint8Array(yjsState));
+  const fragment = doc.getXmlFragment("default");
+  const children = fragment.toArray();
+
+  // Collect text from each block-level element
+  const blocks: { index: number; text: string }[] = [];
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (child instanceof Y.XmlElement) {
+      const text = extractXmlElementText(child);
+      if (text.trim()) {
+        blocks.push({ index: i, text });
+      }
+    }
+  }
+
+  if (blocks.length === 0) return yjsState;
+
+  // Batch translate all block texts
+  const res = await fetch("/api/translate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      texts: blocks.map((b) => b.text),
+      fromLanguage,
+      toLanguage,
+    }),
+  });
+  const data = await res.json();
+  const translated: string[] = data.translated ?? blocks.map((b) => b.text);
+
+  // Build a fresh Y.Doc with translated content preserving structure
+  const newDoc = new Y.Doc();
+  const newFragment = newDoc.getXmlFragment("default");
+
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (child instanceof Y.XmlElement) {
+      const blockIdx = blocks.findIndex((b) => b.index === i);
+      const newElement = new Y.XmlElement(child.nodeName);
+
+      // Copy attributes but fix language
+      const attrs = child.getAttributes();
+      for (const key of Object.keys(attrs)) {
+        if (key === "sourceLang") continue;
+        if (key === "lang") {
+          newElement.setAttribute("lang", toLanguage);
+        } else {
+          newElement.setAttribute(key, attrs[key] as string);
+        }
+      }
+      if (!attrs["lang"]) {
+        newElement.setAttribute("lang", toLanguage);
+      }
+
+      const translatedText =
+        blockIdx >= 0 ? translated[blockIdx] : extractXmlElementText(child);
+      newElement.insert(0, [new Y.XmlText(translatedText)]);
+      newFragment.push([newElement]);
+    } else if (child instanceof Y.XmlText) {
+      newFragment.push([new Y.XmlText(child.toString())]);
+    }
+  }
+
+  return Array.from(Y.encodeStateAsUpdate(newDoc));
+}
+
+function extractXmlElementText(element: Y.XmlElement): string {
+  let text = "";
+  for (const child of element.toArray()) {
+    if (child instanceof Y.XmlText) {
+      text += child.toString();
+    } else if (child instanceof Y.XmlElement) {
+      text += extractXmlElementText(child);
+    }
+  }
+  return text;
+}
+
 function MergeRequestCard({
   mr,
   documentLanguage,
@@ -102,38 +194,22 @@ function MergeRequestCard({
         body: JSON.stringify({
           action: "approve",
           mergeRequestId: mr.id,
-          translatedContent: translatedPreview || branchContent,
         }),
       });
 
       if (mr.branch.yjs_state) {
+        // Translate the branch Yjs tree to the document language, then save as main
+        const translatedState = await translateYjsState(
+          mr.branch.yjs_state,
+          mr.branch.language,
+          documentLanguage,
+        );
+
         const supabase = createClient();
-        const { data: mainDoc } = await supabase
-          .from("documents")
-          .select("yjs_state")
-          .eq("id", mr.document_id)
-          .single();
-
-        const mainYDoc = new Y.Doc();
-        if (
-          mainDoc?.yjs_state &&
-          Array.isArray(mainDoc.yjs_state) &&
-          mainDoc.yjs_state.length > 0
-        ) {
-          Y.applyUpdate(mainYDoc, new Uint8Array(mainDoc.yjs_state));
-        }
-
-        const branchYDoc = new Y.Doc();
-        Y.applyUpdate(branchYDoc, new Uint8Array(mr.branch.yjs_state));
-
-        const branchState = Y.encodeStateAsUpdate(branchYDoc);
-        Y.applyUpdate(mainYDoc, branchState);
-
-        const mergedState = Y.encodeStateAsUpdate(mainYDoc);
         await supabase
           .from("documents")
           .update({
-            yjs_state: Array.from(mergedState),
+            yjs_state: translatedState,
             updated_at: new Date().toISOString(),
           })
           .eq("id", mr.document_id);
