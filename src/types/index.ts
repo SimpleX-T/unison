@@ -137,3 +137,45 @@ export interface AwarenessUser {
   color: string;
   flag: string;
 }
+
+export interface DocumentAccess {
+  document_id: string;
+  user_id: string;
+  role: "editor" | "viewer";
+  invited_by: string;
+  created_at: string;
+  user?: Profile;
+}
+
+export interface DocumentBranch {
+  id: string;
+  document_id: string;
+  owner_id: string;
+  name: string;
+  language: string;
+  yjs_state: number[] | null;
+  status: "active" | "submitted" | "merged" | "rejected";
+  created_at: string;
+  updated_at: string;
+  owner?: Profile;
+}
+
+export interface BranchSnapshot {
+  id: string;
+  branch_id: string;
+  yjs_state: number[] | null;
+  created_at: string;
+}
+
+export interface MergeRequest {
+  id: string;
+  branch_id: string;
+  document_id: string;
+  submitted_by: string;
+  status: "pending" | "approved" | "merged" | "rejected";
+  owner_note: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  branch?: DocumentBranch;
+  submitter?: Profile;
+}

@@ -10,36 +10,48 @@ export class SupabaseProvider {
   doc: Y.Doc;
   awareness: Awareness;
   private documentId: string;
+  private branchId?: string;
   private supabase = createClient();
   private channel: ReturnType<typeof this.supabase.channel>;
   private persistTimeout: ReturnType<typeof setTimeout> | null = null;
   private connected = false;
   private dirty = false;
 
-  constructor(doc: Y.Doc, documentId: string) {
+  constructor(doc: Y.Doc, documentId: string, branchId?: string) {
     this.doc = doc;
     this.documentId = documentId;
+    this.branchId = branchId;
     this.awareness = new Awareness(doc);
-    this.channel = this.supabase.channel(`yjs:${documentId}`);
+
+    const channelName = branchId
+      ? `yjs:${documentId}:branch:${branchId}`
+      : `yjs:${documentId}:main`;
+    this.channel = this.supabase.channel(channelName);
     this.connect();
   }
 
   private async connect() {
-    // 1. Load persisted Yjs state from Supabase
-    //    yjs_state is now a jsonb column storing a number array like [1,3,144,...]
     try {
-      const { data } = await this.supabase
-        .from("documents")
-        .select("yjs_state")
-        .eq("id", this.documentId)
-        .single();
+      let yjsState: number[] | null = null;
 
-      if (
-        data?.yjs_state &&
-        Array.isArray(data.yjs_state) &&
-        data.yjs_state.length > 0
-      ) {
-        const state = new Uint8Array(data.yjs_state);
+      if (this.branchId) {
+        const { data } = await this.supabase
+          .from("document_branches")
+          .select("yjs_state")
+          .eq("id", this.branchId)
+          .single();
+        yjsState = data?.yjs_state ?? null;
+      } else {
+        const { data } = await this.supabase
+          .from("documents")
+          .select("yjs_state")
+          .eq("id", this.documentId)
+          .single();
+        yjsState = data?.yjs_state ?? null;
+      }
+
+      if (yjsState && Array.isArray(yjsState) && yjsState.length > 0) {
+        const state = new Uint8Array(yjsState);
         Y.applyUpdate(this.doc, state);
       }
     } catch (err) {
@@ -99,14 +111,25 @@ export class SupabaseProvider {
     if (!this.dirty) return;
     try {
       const state = Y.encodeStateAsUpdate(this.doc);
-      // yjs_state is jsonb — Array.from() produces [1,3,144,...] which jsonb stores correctly
-      await this.supabase
-        .from("documents")
-        .update({
-          yjs_state: Array.from(state),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", this.documentId);
+      const stateArray = Array.from(state);
+
+      if (this.branchId) {
+        await this.supabase
+          .from("document_branches")
+          .update({
+            yjs_state: stateArray,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", this.branchId);
+      } else {
+        await this.supabase
+          .from("documents")
+          .update({
+            yjs_state: stateArray,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", this.documentId);
+      }
       this.dirty = false;
     } catch (err) {
       console.warn("SupabaseProvider: persist failed", err);

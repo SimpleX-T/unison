@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Collaboration from "@tiptap/extension-collaboration";
@@ -11,6 +11,8 @@ import { LanguageAttr } from "@/lib/tiptap/LanguageAttr";
 import { useDocumentTranslation } from "@/hooks/useDocumentTranslation";
 import { DocumentToolbar } from "./DocumentToolbar";
 import { CommentSidebar } from "./CommentSidebar";
+import { MergePanel } from "./MergePanel";
+import { InviteDocumentModal } from "@/components/modals/InviteDocumentModal";
 import { useAppStore } from "@/store/useAppStore";
 import { getLanguage } from "@/lib/languages";
 
@@ -18,12 +20,18 @@ interface DocumentEditorProps {
   documentId: string;
   initialTitle?: string;
   userId?: string;
+  isOwner?: boolean;
+  branchId?: string;
+  documentLanguage?: string;
 }
 
 export function DocumentEditor({
   documentId,
   initialTitle = "Untitled",
   userId,
+  isOwner = true,
+  branchId,
+  documentLanguage = "en",
 }: DocumentEditorProps) {
   const user = useAppStore((s) => s.user);
   const [isTranslatedMode, setIsTranslatedMode] = useState(false);
@@ -32,14 +40,36 @@ export function DocumentEditor({
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
+  const [showMergePanel, setShowMergePanel] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [pendingMergeCount, setPendingMergeCount] = useState(0);
+  const [branchStatus, setBranchStatus] = useState<string>(
+    branchId ? "active" : "",
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const providerRef = useRef<SupabaseProvider | null>(null);
 
-  // Create Y.Doc only once per documentId (stable reference)
-  const ydoc = useMemo(() => new Y.Doc(), [documentId]);
+  const ydoc = useMemo(() => new Y.Doc(), [documentId, branchId]);
 
-  // Autosave title to DB (debounced 1.5s)
+  // Load pending merge count for owner
+  const loadMergeCount = useCallback(async () => {
+    if (!isOwner) return;
+    try {
+      const res = await fetch(`/api/documents/${documentId}/merge`);
+      const data = await res.json();
+      setPendingMergeCount(data.mergeRequests?.length ?? 0);
+    } catch {
+      /* ignore */
+    }
+  }, [documentId, isOwner]);
+
   useEffect(() => {
-    if (!userId || title === initialTitle) return;
+    loadMergeCount();
+  }, [loadMergeCount]);
+
+  // Autosave title to DB (debounced 1.5s) — owner only
+  useEffect(() => {
+    if (!userId || !isOwner || title === initialTitle) return;
     setSaveStatus("saving");
     const timer = setTimeout(async () => {
       try {
@@ -60,11 +90,11 @@ export function DocumentEditor({
       }
     }, 1500);
     return () => clearTimeout(timer);
-  }, [title, documentId, userId, initialTitle]);
+  }, [title, documentId, userId, initialTitle, isOwner]);
 
-  // Connect the Supabase provider
+  // Connect the Supabase provider (branch-aware)
   useEffect(() => {
-    const provider = new SupabaseProvider(ydoc, documentId);
+    const provider = new SupabaseProvider(ydoc, documentId, branchId);
     providerRef.current = provider;
     setProviderReady(true);
 
@@ -73,9 +103,9 @@ export function DocumentEditor({
       ydoc.destroy();
       setProviderReady(false);
     };
-  }, [ydoc, documentId]);
+  }, [ydoc, documentId, branchId]);
 
-  // Update awareness separately
+  // Update awareness
   useEffect(() => {
     const provider = providerRef.current;
     if (!provider || !user.id) return;
@@ -90,17 +120,37 @@ export function DocumentEditor({
     });
   }, [user.id, user.display_name, user.preferred_language]);
 
+  const handleSubmitForReview = async () => {
+    if (!branchId) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/documents/${documentId}/merge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "submit", branchId }),
+      });
+      if (res.ok) {
+        setBranchStatus("submitted");
+      }
+    } catch (err) {
+      console.error("Submit failed:", err);
+    }
+    setIsSubmitting(false);
+  };
+
   const editor = useEditor(
     {
       immediatelyRender: false,
+      editable: branchStatus !== "submitted",
       extensions: [
         StarterKit,
         UnderlineExt,
         LanguageAttr,
         Collaboration.configure({ document: ydoc }),
         Placeholder.configure({
-          placeholder:
-            "Start writing… your collaborators will see it in their language.",
+          placeholder: isOwner
+            ? "Start writing… your collaborators will see it in their language."
+            : "Edit in your language… submit for review when ready.",
         }),
       ],
       editorProps: {
@@ -110,10 +160,9 @@ export function DocumentEditor({
         },
       },
     },
-    [documentId],
+    [documentId, branchId, branchStatus],
   );
 
-  // Inline translation — modifies editor content directly
   useDocumentTranslation(editor, user.preferred_language, isTranslatedMode);
 
   if (!providerReady) {
@@ -139,12 +188,20 @@ export function DocumentEditor({
     <div className="document-shell">
       <DocumentToolbar
         title={title}
-        onTitleChange={setTitle}
+        onTitleChange={isOwner ? setTitle : () => {}}
         documentId={documentId}
         isTranslatedMode={isTranslatedMode}
         onToggleTranslation={() => setIsTranslatedMode(!isTranslatedMode)}
         editor={editor}
         saveStatus={saveStatus}
+        isOwner={isOwner}
+        branchId={branchId}
+        branchStatus={branchStatus}
+        pendingMergeCount={pendingMergeCount}
+        onToggleMergePanel={() => setShowMergePanel(!showMergePanel)}
+        onInviteClick={() => setShowInviteModal(true)}
+        onSubmitForReview={handleSubmitForReview}
+        isSubmitting={isSubmitting}
       />
 
       <div className="document-body">
@@ -152,8 +209,23 @@ export function DocumentEditor({
           <EditorContent editor={editor} />
         </div>
 
-        <CommentSidebar documentId={documentId} editor={editor} />
+        {isOwner && showMergePanel ? (
+          <MergePanel
+            documentId={documentId}
+            documentLanguage={documentLanguage}
+            onMergeComplete={loadMergeCount}
+          />
+        ) : (
+          <CommentSidebar documentId={documentId} editor={editor} />
+        )}
       </div>
+
+      {showInviteModal && (
+        <InviteDocumentModal
+          documentId={documentId}
+          onClose={() => setShowInviteModal(false)}
+        />
+      )}
     </div>
   );
 }

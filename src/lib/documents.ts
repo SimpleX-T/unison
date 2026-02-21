@@ -96,3 +96,43 @@ export async function deleteDocument(docId: string): Promise<void> {
   const supabase = await createClient();
   await supabase.from("documents").delete().eq("id", docId);
 }
+
+/**
+ * Get a document only if the given user has access (owner or invited).
+ * Returns the doc and access metadata, or null if forbidden.
+ */
+export async function getDocumentWithAccess(
+  docId: string,
+  userId: string,
+): Promise<{
+  doc: DocumentRow;
+  isOwner: boolean;
+  role: string;
+} | null> {
+  const supabase = await createClient();
+
+  const { data: doc } = await supabase
+    .from("documents")
+    .select(
+      "id, workspace_id, title, title_original_language, created_by, last_edited_by, created_at, updated_at",
+    )
+    .eq("id", docId)
+    .single();
+
+  if (!doc) return null;
+
+  if (doc.created_by === userId) {
+    return { doc, isOwner: true, role: "owner" };
+  }
+
+  const { data: access } = await supabase
+    .from("document_access")
+    .select("role")
+    .eq("document_id", docId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!access) return null;
+
+  return { doc, isOwner: false, role: access.role };
+}

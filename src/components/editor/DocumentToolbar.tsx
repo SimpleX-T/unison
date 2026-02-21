@@ -21,6 +21,12 @@ import {
   CodeSquare,
   Undo2,
   Redo2,
+  GitBranch,
+  GitMerge,
+  UserPlus,
+  Send,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import { getLanguage } from "@/lib/languages";
 import Link from "next/link";
@@ -35,6 +41,14 @@ interface DocumentToolbarProps {
   onToggleTranslation: () => void;
   editor: Editor | null;
   saveStatus?: "idle" | "saving" | "saved";
+  isOwner?: boolean;
+  branchId?: string;
+  branchStatus?: string;
+  pendingMergeCount?: number;
+  onToggleMergePanel?: () => void;
+  onInviteClick?: () => void;
+  onSubmitForReview?: () => void;
+  isSubmitting?: boolean;
 }
 
 function Btn({
@@ -74,6 +88,14 @@ export function DocumentToolbar({
   onToggleTranslation,
   editor,
   saveStatus = "idle",
+  isOwner = true,
+  branchId,
+  branchStatus,
+  pendingMergeCount = 0,
+  onToggleMergePanel,
+  onInviteClick,
+  onSubmitForReview,
+  isSubmitting = false,
 }: DocumentToolbarProps) {
   const user = useAppStore((s) => s.user);
   const params = useParams();
@@ -105,6 +127,24 @@ export function DocumentToolbar({
           </span>
         )}
 
+        {/* Branch indicator */}
+        {branchId ? (
+          <span className="doc-branch-indicator branch">
+            <GitBranch size={12} />
+            <span>Your Branch</span>
+            {branchStatus === "submitted" && (
+              <span className="doc-branch-status submitted">Submitted</span>
+            )}
+          </span>
+        ) : (
+          isOwner && (
+            <span className="doc-branch-indicator main">
+              <FileText size={12} />
+              <span>Main</span>
+            </span>
+          )
+        )}
+
         <div className="doc-toolbar-spacer" />
 
         {user.id && (
@@ -117,6 +157,59 @@ export function DocumentToolbar({
             <span>{lang.flag}</span>
           </div>
         )}
+
+        {/* Owner: invite + merge panel buttons */}
+        {isOwner && onInviteClick && (
+          <button
+            className="doc-toolbar-action-btn"
+            onClick={onInviteClick}
+            title="Invite collaborators"
+          >
+            <UserPlus size={14} />
+          </button>
+        )}
+
+        {isOwner && onToggleMergePanel && (
+          <button
+            className="doc-toolbar-action-btn"
+            onClick={onToggleMergePanel}
+            title="Merge requests"
+            style={{ position: "relative" }}
+          >
+            <GitMerge size={14} />
+            {pendingMergeCount > 0 && (
+              <span className="doc-merge-badge">{pendingMergeCount}</span>
+            )}
+          </button>
+        )}
+
+        {/* Collaborator: submit for review */}
+        {!isOwner &&
+          branchId &&
+          branchStatus === "active" &&
+          onSubmitForReview && (
+            <button
+              className="btn btn-sage btn-sm"
+              onClick={onSubmitForReview}
+              disabled={isSubmitting}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: "12px",
+              }}
+            >
+              {isSubmitting ? (
+                <Loader2
+                  size={13}
+                  style={{ animation: "spin 1s linear infinite" }}
+                />
+              ) : (
+                <Send size={12} />
+              )}
+              Submit for Review
+            </button>
+          )}
 
         <button
           className={`doc-translate-btn ${isTranslatedMode ? "active" : ""}`}
