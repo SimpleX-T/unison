@@ -168,6 +168,14 @@ export function DocumentEditor({
 
   const handleSyncFromMain = async () => {
     if (!branchId) return;
+
+    const confirmed = window.confirm(
+      "Sync from main will merge the owner's latest changes into your branch. " +
+        "Your edits will be preserved alongside the new changes.\n\n" +
+        "Continue?",
+    );
+    if (!confirmed) return;
+
     setIsSyncing(true);
     try {
       const res = await fetch(`/api/documents/${documentId}/sync`, {

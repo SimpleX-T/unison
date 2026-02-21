@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import * as Y from "yjs";
 
 export async function POST(
   req: NextRequest,
@@ -20,7 +21,7 @@ export async function POST(
 
   const { data: branch } = await supabase
     .from("document_branches")
-    .select("owner_id, status")
+    .select("owner_id, status, yjs_state")
     .eq("id", branchId)
     .single();
 
@@ -33,7 +34,6 @@ export async function POST(
       { status: 400 },
     );
 
-  // Get the latest main document state
   const { data: doc } = await supabase
     .from("documents")
     .select("yjs_state, updated_at")
@@ -43,11 +43,34 @@ export async function POST(
   if (!doc)
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
 
-  // Replace the branch state with the latest main state
+  // CRDT merge: apply main's state on top of the branch's state.
+  // Since both share a common ancestor (the fork point), Yjs will
+  // correctly merge concurrent edits from both the owner and collaborator.
+  const mergedDoc = new Y.Doc();
+
+  if (
+    branch.yjs_state &&
+    Array.isArray(branch.yjs_state) &&
+    branch.yjs_state.length > 0
+  ) {
+    Y.applyUpdate(mergedDoc, new Uint8Array(branch.yjs_state));
+  }
+
+  if (
+    doc.yjs_state &&
+    Array.isArray(doc.yjs_state) &&
+    doc.yjs_state.length > 0
+  ) {
+    Y.applyUpdate(mergedDoc, new Uint8Array(doc.yjs_state));
+  }
+
+  const mergedState = Array.from(Y.encodeStateAsUpdate(mergedDoc));
+  mergedDoc.destroy();
+
   await supabase
     .from("document_branches")
     .update({
-      yjs_state: doc.yjs_state,
+      yjs_state: mergedState,
       updated_at: new Date().toISOString(),
     })
     .eq("id", branchId);
