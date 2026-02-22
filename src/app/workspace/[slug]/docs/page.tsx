@@ -2,9 +2,9 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceBySlug } from "@/lib/workspaces";
 import { getDocuments } from "@/lib/documents";
-import { FileText } from "lucide-react";
 import { NewDocumentButton } from "./NewDocumentButton";
 import { DocumentCard } from "./DocumentCard";
+import { DocsPageTitle, DocsEmptyState } from "./DocsPageHeader";
 
 interface DocsPageProps {
   params: Promise<{ slug: string }>;
@@ -34,10 +34,7 @@ export default async function DocsListPage({ params }: DocsPageProps) {
             justifyContent: "space-between",
           }}
         >
-          <div>
-            <h1 style={{ fontFamily: "var(--font-display)" }}>Documents</h1>
-            <p>Collaborative documents translated in real time.</p>
-          </div>
+          <DocsPageTitle />
           <NewDocumentButton
             workspaceId={workspace.id}
             workspaceSlug={slug}
@@ -48,17 +45,7 @@ export default async function DocsListPage({ params }: DocsPageProps) {
 
       <div className="dashboard-grid">
         {docs.length === 0 ? (
-          <div
-            style={{
-              gridColumn: "1/-1",
-              textAlign: "center",
-              padding: "64px 0",
-              color: "var(--color-text-2)",
-            }}
-          >
-            <FileText size={32} style={{ marginBottom: 12, opacity: 0.4 }} />
-            <p>No documents yet. Create your first one.</p>
-          </div>
+          <DocsEmptyState />
         ) : (
           docs.map((doc) => (
             <DocumentCard

@@ -31,6 +31,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { getLanguage } from "@/lib/languages";
+import { useUITranslation } from "@/hooks/useUITranslation";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { Editor } from "@tiptap/react";
@@ -111,6 +112,7 @@ export function DocumentToolbar({
   const params = useParams();
   const slug = params?.slug as string;
   const lang = getLanguage(user.preferred_language);
+  const { t } = useUITranslation();
 
   const sz = 14;
 
@@ -126,14 +128,14 @@ export function DocumentToolbar({
           className="doc-title-input"
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          placeholder="Untitled document"
+          placeholder={t("toolbar.untitled")}
         />
 
         <LanguageBadge languageCode={user.preferred_language} />
 
         {saveStatus !== "idle" && (
           <span className={`doc-save-indicator ${saveStatus}`}>
-            {saveStatus === "saving" ? "Saving…" : "Saved ✓"}
+            {saveStatus === "saving" ? t("doc.saving") : t("doc.saved")}
           </span>
         )}
 
@@ -141,16 +143,16 @@ export function DocumentToolbar({
         {branchId ? (
           <span className="doc-branch-indicator branch">
             <GitBranch size={12} />
-            <span>Your Branch</span>
+            <span>{t("doc.yourBranch")}</span>
             {branchStatus === "submitted" && (
-              <span className="doc-branch-status submitted">Submitted</span>
+              <span className="doc-branch-status submitted">{t("doc.submitted")}</span>
             )}
           </span>
         ) : (
           isOwner && (
             <span className="doc-branch-indicator main">
               <FileText size={12} />
-              <span>Main</span>
+              <span>{t("doc.main")}</span>
             </span>
           )
         )}
@@ -161,13 +163,13 @@ export function DocumentToolbar({
             className="doc-sync-btn"
             onClick={onSyncFromMain}
             disabled={isSyncing || branchStatus === "submitted"}
-            title="Pull latest changes from main"
+            title={t("doc.pullChanges")}
           >
             <RefreshCw
               size={12}
               style={isSyncing ? { animation: "spin 1s linear infinite" } : undefined}
             />
-            {isSyncing ? "Syncing..." : "Sync from main"}
+            {isSyncing ? t("doc.syncing") : t("doc.syncFromMain")}
           </button>
         )}
 
@@ -189,7 +191,7 @@ export function DocumentToolbar({
           <button
             className="doc-toolbar-action-btn"
             onClick={onInviteClick}
-            title="Invite collaborators"
+            title={t("doc.inviteCollaborators")}
           >
             <UserPlus size={14} />
           </button>
@@ -199,7 +201,7 @@ export function DocumentToolbar({
           <button
             className="doc-toolbar-action-btn"
             onClick={onToggleMergePanel}
-            title="Merge requests"
+            title={t("doc.mergeRequests")}
             style={{ position: "relative" }}
           >
             <GitMerge size={14} />
@@ -233,7 +235,7 @@ export function DocumentToolbar({
               ) : (
                 <Send size={12} />
               )}
-              Submit for Review
+              {t("doc.submitForReview")}
             </button>
           )}
 
@@ -241,7 +243,7 @@ export function DocumentToolbar({
           <button
             className="doc-toolbar-action-btn destructive"
             onClick={onDeleteClick}
-            title={isOwner ? "Delete document" : "Leave document"}
+            title={isOwner ? t("doc.deleteDocument") : t("doc.leaveDocument")}
           >
             <Trash2 size={14} />
           </button>
@@ -252,7 +254,7 @@ export function DocumentToolbar({
           onClick={onToggleTranslation}
         >
           {isTranslatedMode ? <Eye size={13} /> : <EyeOff size={13} />}
-          <span>{isTranslatedMode ? "Your Language" : "Original"}</span>
+          <span>{isTranslatedMode ? t("editor.yourLanguage") : t("editor.original")}</span>
           <Languages size={13} />
         </button>
       </div>

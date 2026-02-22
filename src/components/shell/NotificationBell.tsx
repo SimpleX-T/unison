@@ -11,6 +11,7 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
+import { useUITranslation } from "@/hooks/useUITranslation";
 
 interface NotificationItem {
   id: string;
@@ -25,6 +26,7 @@ interface NotificationItem {
 export function NotificationBell() {
   const router = useRouter();
   const user = useAppStore((s) => s.user);
+  const { t } = useUITranslation();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -164,23 +166,23 @@ export function NotificationBell() {
       {open && (
         <div className="notif-dropdown" style={dropdownStyle}>
           <div className="notif-dropdown-header">
-            <span>Notifications</span>
+            <span>{t("notifications.title")}</span>
             {unreadCount > 0 && (
               <button
                 className="notif-mark-all"
                 onClick={handleMarkAllRead}
               >
                 <Check size={12} />
-                Mark all read
+                {t("notifications.markAllRead")}
               </button>
             )}
           </div>
 
           <div className="notif-dropdown-list">
             {loading && notifications.length === 0 ? (
-              <div className="notif-empty">Loading...</div>
+              <div className="notif-empty">{t("notifications.loading")}</div>
             ) : notifications.length === 0 ? (
-              <div className="notif-empty">No notifications yet</div>
+              <div className="notif-empty">{t("notifications.empty")}</div>
             ) : (
               notifications.slice(0, 20).map((notif) => (
                 <button
@@ -197,7 +199,7 @@ export function NotificationBell() {
                       <div className="notif-item-body">{notif.body}</div>
                     )}
                     <div className="notif-item-time">
-                      {getTimeAgo(notif.created_at)}
+                      {getTimeAgo(notif.created_at, t)}
                     </div>
                   </div>
                   {!notif.read && <span className="notif-unread-dot" />}
@@ -211,15 +213,16 @@ export function NotificationBell() {
   );
 }
 
-function getTimeAgo(dateStr: string): string {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getTimeAgo(dateStr: string, t: (key: any) => string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
   const diffMs = now - then;
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 1) return t("time.justNow");
+  if (diffMin < 60) return `${diffMin}${t("time.minutesAgo")}`;
   const diffHrs = Math.floor(diffMin / 60);
-  if (diffHrs < 24) return `${diffHrs}h ago`;
+  if (diffHrs < 24) return `${diffHrs}${t("time.hoursAgo")}`;
   const diffDays = Math.floor(diffHrs / 24);
-  return `${diffDays}d ago`;
+  return `${diffDays}${t("time.daysAgo")}`;
 }

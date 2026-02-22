@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { createClient } from "@/lib/supabase/client";
 import { Copy, Check, Link2 } from "lucide-react";
+import { useUITranslation } from "@/hooks/useUITranslation";
 
 interface InviteModalProps {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface InviteModalProps {
 
 export function InviteModal({ onClose }: InviteModalProps) {
   const workspaceId = useAppStore((s) => s.workspace?.id);
+  const { t } = useUITranslation();
   const [inviteUrl, setInviteUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -39,7 +41,7 @@ export function InviteModal({ onClose }: InviteModalProps) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <h2 style={{ fontFamily: "var(--font-display)", marginBottom: 8 }}>
-          Invite People
+          {t("invite.title")}
         </h2>
         <p
           style={{
@@ -48,8 +50,7 @@ export function InviteModal({ onClose }: InviteModalProps) {
             marginBottom: 20,
           }}
         >
-          Share this link with your teammates. Anyone with the link can join
-          this workspace.
+          {t("invite.description")}
         </p>
 
         {loading ? (
@@ -60,7 +61,7 @@ export function InviteModal({ onClose }: InviteModalProps) {
               color: "var(--color-text-2)",
             }}
           >
-            Generating link…
+            {t("invite.generatingLink")}
           </div>
         ) : (
           <div
@@ -101,7 +102,7 @@ export function InviteModal({ onClose }: InviteModalProps) {
               }}
             >
               {copied ? <Check size={14} /> : <Copy size={14} />}
-              {copied ? "Copied!" : "Copy"}
+              {copied ? t("invite.copied") : t("invite.copy")}
             </button>
           </div>
         )}
@@ -110,7 +111,7 @@ export function InviteModal({ onClose }: InviteModalProps) {
           style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}
         >
           <button className="btn btn-ghost" onClick={onClose}>
-            Done
+            {t("common.done")}
           </button>
         </div>
       </div>

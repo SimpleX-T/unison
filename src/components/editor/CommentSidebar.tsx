@@ -7,6 +7,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { LanguageBadge } from "@/components/ui/LanguageBadge";
 import { TranslationShimmer } from "@/components/ui/TranslationShimmer";
 import { MessageSquare, Send, Loader2 } from "lucide-react";
+import { useUITranslation } from "@/hooks/useUITranslation";
 import type { Editor } from "@tiptap/react";
 
 interface Comment {
@@ -24,6 +25,7 @@ interface Comment {
 }
 
 function CommentItem({ comment }: { comment: Comment }) {
+  const { t } = useUITranslation();
   const { translated, isLoading, isTranslated } = useTranslation(
     comment.id,
     comment.content,
@@ -69,7 +71,7 @@ function CommentItem({ comment }: { comment: Comment }) {
                 fontStyle: "italic",
               }}
             >
-              Translated from {comment.original_language.toUpperCase()}
+              {t("comment.translatedFrom")} {comment.original_language.toUpperCase()}
             </div>
           )}
         </div>
@@ -89,6 +91,7 @@ export function CommentSidebar({
   const [newComment, setNewComment] = useState("");
   const [sending, setSending] = useState(false);
   const user = useAppStore((s) => s.user);
+  const { t } = useUITranslation();
 
   // Fetch comments from DB
   const loadComments = useCallback(async () => {
@@ -179,7 +182,7 @@ export function CommentSidebar({
       <div className="comment-sidebar-header">
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <MessageSquare size={16} />
-          <span>Comments</span>
+          <span>{t("comment.comments")}</span>
           <span
             style={{
               background: "var(--color-bg-2)",
@@ -203,7 +206,7 @@ export function CommentSidebar({
             fontSize: "13px",
           }}
         >
-          No comments yet. Start the conversation.
+          {t("comment.empty")}
         </div>
       )}
 
@@ -215,7 +218,7 @@ export function CommentSidebar({
         <div style={{ position: "relative" }}>
           <textarea
             className="comment-input"
-            placeholder={`Comment in ${user.preferred_language.toUpperCase()}…`}
+            placeholder={`${t("comment.placeholder")} ${user.preferred_language.toUpperCase()}…`}
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             rows={3}

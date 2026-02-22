@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/store/useAppStore";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { LanguageBadge } from "@/components/ui/LanguageBadge";
+import { useUITranslation } from "@/hooks/useUITranslation";
 import {
   GitMerge,
   X,
@@ -167,6 +168,7 @@ function MergeRequestCard({
   const [aiMergedContent, setAiMergedContent] = useState<string | null>(null);
   const [aiMergeLoading, setAiMergeLoading] = useState(false);
   const [showAiMerge, setShowAiMerge] = useState(false);
+  const { t } = useUITranslation();
 
   const branchContent = extractTextFromYjs(mr.branch.yjs_state);
 
@@ -422,7 +424,7 @@ function MergeRequestCard({
     setActing(false);
   };
 
-  const timeAgo = getTimeAgo(mr.created_at);
+  const timeAgo = getTimeAgo(mr.created_at, t);
 
   return (
     <div className="merge-request-card">
@@ -473,8 +475,8 @@ function MergeRequestCard({
         <div className="merge-request-body">
           <div className="merge-preview-label">
             {mr.branch.language !== documentLanguage
-              ? "Translated Preview"
-              : "Content Preview"}
+              ? t("merge.translatedPreview")
+              : t("merge.contentPreview")}
           </div>
           <div className="merge-preview-content">
             {translating ? (
@@ -491,13 +493,13 @@ function MergeRequestCard({
                   size={14}
                   style={{ animation: "spin 1s linear infinite" }}
                 />
-                Translating preview...
+                {t("merge.translating")}
               </div>
             ) : (
               <div
                 style={{ fontSize: "13px", fontFamily: "var(--font-body)" }}
                 dangerouslySetInnerHTML={{
-                  __html: translatedPreview || branchContent || "(Empty)",
+                  __html: translatedPreview || branchContent || "",
                 }}
               />
             )}
@@ -518,19 +520,19 @@ function MergeRequestCard({
               <Sparkles size={13} />
             )}
             {aiMergeLoading
-              ? "Generating merge..."
+              ? t("merge.generatingMerge")
               : aiMergedContent
                 ? showAiMerge
-                  ? "Hide AI Merge"
-                  : "Show AI Merge"
-                : "AI Merge"}
+                  ? t("merge.hideAiMerge")
+                  : t("merge.showAiMerge")
+                : t("merge.aiMerge")}
           </button>
 
           {showAiMerge && aiMergedContent && (
             <div className="ai-review-output">
               <div className="ai-review-header">
                 <Sparkles size={12} />
-                <span>AI Merged Preview</span>
+                <span>{t("merge.aiMergedPreview")}</span>
               </div>
               <div className="ai-review-body">
                 {aiMergedContent.split("\n").map((line, i) => (
@@ -560,7 +562,7 @@ function MergeRequestCard({
                   ) : (
                     <>
                       <Check size={13} />
-                      Apply AI Merge
+                      {t("merge.applyAiMerge")}
                     </>
                   )}
                 </button>
@@ -597,12 +599,12 @@ function MergeRequestCard({
                     fontWeight: 500,
                   }}
                 >
-                  Rejection note (optional)
+                  {t("merge.rejectionNote")}
                 </span>
               </div>
               <textarea
                 className="input"
-                placeholder="Explain why you're sending it back..."
+                placeholder={t("merge.rejectPlaceholder")}
                 value={rejectNote}
                 onChange={(e) => setRejectNote(e.target.value)}
                 rows={2}
@@ -624,7 +626,7 @@ function MergeRequestCard({
                     style={{ animation: "spin 1s linear infinite" }}
                   />
                 ) : (
-                  "Confirm Reject"
+                  t("merge.confirmReject")
                 )}
               </button>
             </div>
@@ -644,7 +646,7 @@ function MergeRequestCard({
                 ) : (
                   <>
                     <Check size={13} />
-                    Merge
+                    {t("merge.merge")}
                   </>
                 )}
               </button>
@@ -659,7 +661,7 @@ function MergeRequestCard({
                 disabled={acting}
               >
                 <X size={13} />
-                Reject
+                {t("merge.reject")}
               </button>
             </div>
           )}
@@ -677,6 +679,7 @@ export function MergePanel({
   const [mergeRequests, setMergeRequests] = useState<MergeRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [mainContent, setMainContent] = useState("");
+  const { t } = useUITranslation();
 
   const loadMergeRequests = useCallback(async () => {
     setLoading(true);
@@ -716,7 +719,7 @@ export function MergePanel({
       <div className="merge-panel-header">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <GitMerge size={16} />
-          <span>Merge Requests</span>
+          <span>{t("merge.title")}</span>
           {mergeRequests.length > 0 && (
             <span
               style={{
@@ -751,7 +754,7 @@ export function MergePanel({
             size={14}
             style={{ animation: "spin 1s linear infinite" }}
           />
-          Loading...
+          {t("merge.loading")}
         </div>
       ) : mergeRequests.length === 0 ? (
         <div
@@ -762,7 +765,7 @@ export function MergePanel({
             fontSize: "13px",
           }}
         >
-          No pending merge requests.
+          {t("merge.empty")}
         </div>
       ) : (
         mergeRequests.map((mr) => (
@@ -779,16 +782,17 @@ export function MergePanel({
   );
 }
 
-function getTimeAgo(dateStr: string): string {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getTimeAgo(dateStr: string, t: (key: any) => string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
   const diffMs = now - then;
   const diffMin = Math.floor(diffMs / 60000);
 
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 1) return t("time.justNow");
+  if (diffMin < 60) return `${diffMin}${t("time.minutesAgo")}`;
   const diffHrs = Math.floor(diffMin / 60);
-  if (diffHrs < 24) return `${diffHrs}h ago`;
+  if (diffHrs < 24) return `${diffHrs}${t("time.hoursAgo")}`;
   const diffDays = Math.floor(diffHrs / 24);
-  return `${diffDays}d ago`;
+  return `${diffDays}${t("time.daysAgo")}`;
 }

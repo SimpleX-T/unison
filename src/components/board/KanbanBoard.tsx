@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -8,6 +8,7 @@ import {
 } from "@hello-pangea/dnd";
 import { TaskCard } from "./TaskCard";
 import { CreateTaskModal } from "@/components/modals/CreateTaskModal";
+import { TaskDetailModal } from "@/components/modals/TaskDetailModal";
 import { useUITranslation } from "@/hooks/useUITranslation";
 import { createClient } from "@/lib/supabase/client";
 import type { BoardColumnRow, TaskRow } from "@/lib/boards";
@@ -15,9 +16,7 @@ import type { BoardColumnRow, TaskRow } from "@/lib/boards";
 export type { TaskRow };
 
 // Local UI state — extends TaskRow with a status string for column grouping
-export interface KanbanTask extends TaskRow {
-  // column_id is the authoritative key for which column a task belongs to
-}
+export type KanbanTask = TaskRow;
 
 interface Column extends BoardColumnRow {
   tasks: KanbanTask[];
@@ -48,6 +47,7 @@ export function KanbanBoard({
   const { t } = useUITranslation();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [addToColumnId, setAddToColumnId] = useState<string>("");
+  const [selectedTask, setSelectedTask] = useState<TaskRow | null>(null);
 
   // Merge columns with their tasks
   const buildColumns = useCallback(
@@ -211,6 +211,11 @@ export function KanbanBoard({
                             ref={dragProvided.innerRef}
                             {...dragProvided.draggableProps}
                             {...dragProvided.dragHandleProps}
+                            onClick={() => {
+                              if (!dragSnapshot.isDragging)
+                                setSelectedTask(task);
+                            }}
+                            style={{ cursor: "pointer" }}
                           >
                             <TaskCard
                               task={task}
@@ -233,6 +238,15 @@ export function KanbanBoard({
         <CreateTaskModal
           onClose={() => setShowTaskModal(false)}
           onCreateTask={handleCreateTask}
+        />
+      )}
+
+      {selectedTask && (
+        <TaskDetailModal
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onUpdate={refresh}
+          userLanguage={userLanguage}
         />
       )}
     </>

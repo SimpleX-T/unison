@@ -95,7 +95,7 @@ export function AppSidebar({ slug }: AppSidebarProps) {
             className="sidebar-add-btn"
             onClick={() => setModal("channel")}
           >
-            + New Channel
+            + {t("sidebar.newChannel")}
           </button>
         </div>
 
@@ -112,7 +112,7 @@ export function AppSidebar({ slug }: AppSidebarProps) {
             }}
           >
             <UserPlus size={14} />
-            Invite People
+            {t("sidebar.invitePeople")}
           </button>
         </div>
 
@@ -123,7 +123,7 @@ export function AppSidebar({ slug }: AppSidebarProps) {
               {(user.display_name || "U").charAt(0).toUpperCase()}
             </div>
             <span className="sidebar-user-name">
-              {user.display_name || "Loading…"}
+              {user.display_name || t("sidebar.loading")}
             </span>
             <NotificationBell />
           </div>
@@ -154,7 +154,7 @@ export function AppSidebar({ slug }: AppSidebarProps) {
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
             )}
-            {resolved === "dark" ? "Light Mode" : "Dark Mode"}
+            {resolved === "dark" ? t("sidebar.lightMode") : t("sidebar.darkMode")}
           </button>
 
           <LanguageSwitcher />
@@ -173,7 +173,7 @@ export function AppSidebar({ slug }: AppSidebarProps) {
             }}
           >
             <LogOut size={14} />
-            {signingOut ? "Signing out…" : "Sign out"}
+            {signingOut ? t("sidebar.signingOut") : t("sidebar.signOut")}
           </button>
         </div>
       </aside>

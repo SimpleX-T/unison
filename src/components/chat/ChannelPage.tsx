@@ -7,6 +7,7 @@ import { LanguageBadge } from "@/components/ui/LanguageBadge";
 import { useTranslation } from "@/hooks/useTranslation";
 import type { MessageRow } from "@/lib/chat";
 import { Send, Loader2 } from "lucide-react";
+import { useUITranslation } from "@/hooks/useUITranslation";
 
 interface ChannelPageProps {
   channelId: string;
@@ -19,8 +20,8 @@ function formatTime(iso: string) {
   }).format(new Date(iso));
 }
 
-/** Individual message with auto-translation */
 function ChatMessage({ msg }: { msg: MessageRow }) {
+  const { t } = useUITranslation();
   const { translated, isLoading, isTranslated } = useTranslation(
     msg.id,
     msg.content,
@@ -36,7 +37,7 @@ function ChatMessage({ msg }: { msg: MessageRow }) {
       />
       <div className="chat-message-content">
         <p className="chat-message-author">
-          {msg.sender?.display_name ?? "Unknown"}
+          {msg.sender?.display_name ?? "?"}
           <LanguageBadge
             languageCode={msg.original_language}
             showName={false}
@@ -53,7 +54,7 @@ function ChatMessage({ msg }: { msg: MessageRow }) {
         </p>
         {isLoading ? (
           <p className="chat-message-text" style={{ opacity: 0.5 }}>
-            Translating…
+            {t("chat.translating")}
           </p>
         ) : (
           <>
@@ -68,7 +69,7 @@ function ChatMessage({ msg }: { msg: MessageRow }) {
                 }}
                 title={msg.content}
               >
-                Translated from {msg.original_language.toUpperCase()}
+                {t("chat.translatedFrom")} {msg.original_language.toUpperCase()}
               </p>
             )}
           </>
@@ -80,6 +81,7 @@ function ChatMessage({ msg }: { msg: MessageRow }) {
 
 export function ChannelPage({ channelId }: ChannelPageProps) {
   const user = useAppStore((s) => s.user);
+  const { t } = useUITranslation();
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [channelName, setChannelName] = useState("");
@@ -240,7 +242,7 @@ export function ChannelPage({ channelId }: ChannelPageProps) {
               fontSize: 14,
             }}
           >
-            No messages yet. Say something! 👋
+            {t("chat.noMessages")}
           </div>
         ) : (
           messages.map((msg) => <ChatMessage key={msg.id} msg={msg} />)
@@ -259,7 +261,7 @@ export function ChannelPage({ channelId }: ChannelPageProps) {
             fontFamily: "var(--font-ui)",
             fontSize: 14,
           }}
-          placeholder="Write a message… (Enter to send)"
+          placeholder={t("chat.placeholder")}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}

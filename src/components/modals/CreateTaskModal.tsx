@@ -38,7 +38,7 @@ export function CreateTaskModal({
         <div className="modal-header">
           <div>
             <h2 className="modal-title">{t("board.addTask")}</h2>
-            <p className="modal-subtitle">Add a new task to the board</p>
+            <p className="modal-subtitle">{t("task.addSubtitle")}</p>
           </div>
           <button className="modal-close" onClick={onClose}>
             ✕
@@ -49,7 +49,7 @@ export function CreateTaskModal({
           <label className="label">{t("common.title")}</label>
           <input
             className="input"
-            placeholder="Task title…"
+            placeholder={t("task.titlePlaceholder")}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             autoFocus
@@ -61,7 +61,7 @@ export function CreateTaskModal({
           <label className="label">{t("common.description")}</label>
           <textarea
             className="input"
-            placeholder="Optional description…"
+            placeholder={t("task.descPlaceholder")}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
@@ -70,7 +70,7 @@ export function CreateTaskModal({
         </div>
 
         <div className="form-group">
-          <label className="label">Priority</label>
+          <label className="label">{t("task.priority")}</label>
           <div style={{ display: "flex", gap: 8 }}>
             {PRIORITIES.map((p) => (
               <button

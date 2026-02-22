@@ -10,6 +10,7 @@ import {
   LogOut,
   Loader2,
 } from "lucide-react";
+import { useUITranslation } from "@/hooks/useUITranslation";
 
 interface DocumentCardProps {
   doc: {
@@ -24,6 +25,7 @@ interface DocumentCardProps {
 
 export function DocumentCard({ doc, slug, currentUserId }: DocumentCardProps) {
   const router = useRouter();
+  const { t } = useUITranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -105,7 +107,7 @@ export function DocumentCard({ doc, slug, currentUserId }: DocumentCardProps) {
             setMenuOpen(!menuOpen);
             setConfirmAction(null);
           }}
-          title="More options"
+          title={t("doc.moreOptions")}
         >
           <MoreVertical size={14} />
         </button>
@@ -116,8 +118,8 @@ export function DocumentCard({ doc, slug, currentUserId }: DocumentCardProps) {
               <div className="doc-card-confirm">
                 <p style={{ fontSize: 12, margin: "0 0 8px 0", lineHeight: 1.4 }}>
                   {confirmAction === "delete_for_all"
-                    ? "Delete this document for everyone? This cannot be undone."
-                    : "Leave this document? Your branch will be removed."}
+                    ? t("doc.deleteConfirm")
+                    : t("doc.leaveConfirm")}
                 </p>
                 <div
                   style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}
@@ -128,7 +130,7 @@ export function DocumentCard({ doc, slug, currentUserId }: DocumentCardProps) {
                     disabled={loading}
                     style={{ fontSize: 11, padding: "3px 8px" }}
                   >
-                    Cancel
+                    {t("common.cancel")}
                   </button>
                   <button
                     className="btn btn-sm"
@@ -148,7 +150,7 @@ export function DocumentCard({ doc, slug, currentUserId }: DocumentCardProps) {
                         style={{ animation: "spin 1s linear infinite" }}
                       />
                     ) : (
-                      "Confirm"
+                      t("common.confirm")
                     )}
                   </button>
                 </div>
@@ -161,7 +163,7 @@ export function DocumentCard({ doc, slug, currentUserId }: DocumentCardProps) {
                     onClick={() => setConfirmAction("delete_for_all")}
                   >
                     <Trash2 size={13} />
-                    Delete for everyone
+                    {t("doc.deleteForAll")}
                   </button>
                 ) : (
                   <button
@@ -169,7 +171,7 @@ export function DocumentCard({ doc, slug, currentUserId }: DocumentCardProps) {
                     onClick={() => setConfirmAction("quit_collaboration")}
                   >
                     <LogOut size={13} />
-                    Leave document
+                    {t("doc.leaveDocument")}
                   </button>
                 )}
               </>

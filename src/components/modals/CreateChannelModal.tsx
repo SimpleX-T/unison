@@ -4,6 +4,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
 import { createClient } from "@/lib/supabase/client";
 import { Hash } from "lucide-react";
+import { useUITranslation } from "@/hooks/useUITranslation";
 
 interface CreateChannelModalProps {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface CreateChannelModalProps {
 
 export function CreateChannelModal({ onClose }: CreateChannelModalProps) {
   const workspaceId = useAppStore((s) => s.workspace?.id);
+  const { t } = useUITranslation();
   const params = useParams();
   const slug = params?.slug as string;
   const router = useRouter();
@@ -58,7 +60,7 @@ export function CreateChannelModal({ onClose }: CreateChannelModalProps) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <h2 style={{ fontFamily: "var(--font-display)", marginBottom: 8 }}>
-          New Channel
+          {t("sidebar.newChannel")}
         </h2>
         <p
           style={{
@@ -67,8 +69,7 @@ export function CreateChannelModal({ onClose }: CreateChannelModalProps) {
             marginBottom: 16,
           }}
         >
-          Channels are where conversations happen. Create one for a topic, team,
-          or project.
+          {t("chat.channelDescription")}
         </p>
 
         <div
@@ -108,14 +109,14 @@ export function CreateChannelModal({ onClose }: CreateChannelModalProps) {
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <button className="btn btn-ghost" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             className="btn btn-sage"
             onClick={handleCreate}
             disabled={creating || !name.trim()}
           >
-            {creating ? "Creating…" : "Create Channel"}
+            {creating ? t("common.loading") : t("sidebar.newChannel")}
           </button>
         </div>
       </div>

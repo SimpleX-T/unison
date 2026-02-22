@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
 import { createClient } from "@/lib/supabase/client";
 import { ChevronDown, Plus, Users } from "lucide-react";
+import { useUITranslation } from "@/hooks/useUITranslation";
 
 interface WorkspaceItem {
   id: string;
@@ -19,6 +20,7 @@ export function WorkspaceSwitcher() {
   const router = useRouter();
   const workspace = useAppStore((s) => s.workspace);
   const user = useAppStore((s) => s.user);
+  const { t } = useUITranslation();
   const [open, setOpen] = useState(false);
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -105,7 +107,7 @@ export function WorkspaceSwitcher() {
         <span className="ws-switcher-avatar">{initial}</span>
         <div className="ws-switcher-info">
           <span className="ws-switcher-name">
-            {workspace?.name || "Workspace"}
+            {workspace?.name || t("workspace.title")}
           </span>
         </div>
         <ChevronDown
@@ -122,12 +124,12 @@ export function WorkspaceSwitcher() {
 
       {open && (
         <div className="ws-switcher-dropdown">
-          <div className="ws-switcher-dropdown-label">Workspaces</div>
+          <div className="ws-switcher-dropdown-label">{t("workspace.workspaces")}</div>
 
           {loading ? (
-            <div className="ws-switcher-empty">Loading...</div>
+            <div className="ws-switcher-empty">{t("workspace.loading")}</div>
           ) : workspaces.length === 0 ? (
-            <div className="ws-switcher-empty">No workspaces found</div>
+            <div className="ws-switcher-empty">{t("workspace.noWorkspaces")}</div>
           ) : (
             workspaces.map((ws) => {
               const isActive = ws.id === workspace?.id;
@@ -143,7 +145,7 @@ export function WorkspaceSwitcher() {
                   <div className="ws-switcher-item-info">
                     <span className="ws-switcher-item-name">{ws.name}</span>
                     <span className="ws-switcher-item-meta">
-                      {ws.role === "owner" ? "Owner" : ws.role === "admin" ? "Admin" : "Member"}
+                      {ws.role === "owner" ? t("workspace.owner") : ws.role === "admin" ? t("workspace.admin") : t("workspace.member")}
                       {ws.role === "owner" && ws.member_count != null && (
                         <>
                           {" "}
@@ -186,7 +188,7 @@ export function WorkspaceSwitcher() {
               className="ws-switcher-item-name"
               style={{ color: "var(--color-text-1)" }}
             >
-              Create Workspace
+              {t("workspace.createWorkspace")}
             </span>
           </button>
         </div>

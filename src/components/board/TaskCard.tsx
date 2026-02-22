@@ -2,6 +2,8 @@
 import { getLanguage } from "@/lib/languages";
 import { useTranslation } from "@/hooks/useTranslation";
 import type { TaskRow } from "@/lib/boards";
+import { UIStringKey } from "@/lib/i18n/ui-strings";
+import { useUITranslation } from "@/hooks/useUITranslation";
 
 interface TaskCardProps {
   task: TaskRow;
@@ -17,6 +19,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 export function TaskCard({ task, isDragging }: TaskCardProps) {
   const lang = getLanguage(task.title_original_language);
+  const { t } = useUITranslation();
 
   // Translate title
   const { translated: translatedTitle, isLoading: titleLoading } =
@@ -65,7 +68,7 @@ export function TaskCard({ task, isDragging }: TaskCardProps) {
               color: PRIORITY_COLORS[task.priority] ?? "var(--color-text-2)",
             }}
           >
-            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+            {t(`task.priority.${task.priority}` as UIStringKey)}
           </span>
         )}
         <span

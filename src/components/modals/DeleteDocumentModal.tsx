@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { X, Trash2, LogOut, AlertTriangle, Loader2 } from "lucide-react";
+import { useUITranslation } from "@/hooks/useUITranslation";
 
 interface DeleteDocumentModalProps {
   documentId: string;
@@ -19,6 +20,7 @@ export function DeleteDocumentModal({
   const router = useRouter();
   const params = useParams();
   const slug = params?.slug as string;
+  const { t } = useUITranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -71,7 +73,7 @@ export function DeleteDocumentModal({
             }}
           >
             <AlertTriangle size={20} style={{ color: "var(--color-rust)" }} />
-            Delete Document
+            {t("doc.deleteTitle")}
           </h2>
           <button
             onClick={onClose}
@@ -98,8 +100,8 @@ export function DeleteDocumentModal({
           }}
         >
           {isOwner
-            ? `You are the owner of "${documentTitle || "Untitled"}". Choose how to proceed.`
-            : `You are a collaborator on "${documentTitle || "Untitled"}".`}
+            ? `${t("doc.deleteOwnerDesc")} "${documentTitle || t("doc.untitled")}"`
+            : `${t("doc.deleteCollabDesc")} "${documentTitle || t("doc.untitled")}"`}
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -121,11 +123,10 @@ export function DeleteDocumentModal({
               </div>
               <div className="delete-modal-action-text">
                 <span className="delete-modal-action-title">
-                  Delete for everyone
+                  {t("doc.deleteForAllAction")}
                 </span>
                 <span className="delete-modal-action-desc">
-                  Permanently removes this document and all branches for every
-                  collaborator.
+                  {t("doc.deleteForAllDesc")}
                 </span>
               </div>
             </button>
@@ -147,11 +148,10 @@ export function DeleteDocumentModal({
               </div>
               <div className="delete-modal-action-text">
                 <span className="delete-modal-action-title">
-                  Leave document
+                  {t("doc.leaveAction")}
                 </span>
                 <span className="delete-modal-action-desc">
-                  Removes your branch and quits collaboration. The original
-                  document stays for the owner and other collaborators.
+                  {t("doc.leaveDesc")}
                 </span>
               </div>
             </button>
@@ -180,7 +180,7 @@ export function DeleteDocumentModal({
           }}
         >
           <button className="btn btn-ghost" onClick={onClose} disabled={loading}>
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       </div>

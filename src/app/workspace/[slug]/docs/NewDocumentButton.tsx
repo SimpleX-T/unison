@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Loader2 } from "lucide-react";
+import { useUITranslation } from "@/hooks/useUITranslation";
 
 interface NewDocumentButtonProps {
   workspaceId: string;
@@ -16,6 +17,7 @@ export function NewDocumentButton({
   language,
 }: NewDocumentButtonProps) {
   const router = useRouter();
+  const { t } = useUITranslation();
   const [loading, setLoading] = useState(false);
 
   const handleCreate = async () => {
@@ -33,7 +35,7 @@ export function NewDocumentButton({
       .from("documents")
       .insert({
         workspace_id: workspaceId,
-        title: "Untitled",
+        title: t("doc.untitled"),
         title_original_language: language,
         created_by: user.id,
         last_edited_by: user.id,
@@ -60,7 +62,7 @@ export function NewDocumentButton({
       ) : (
         <Plus size={16} />
       )}
-      New Document
+      {t("doc.newDocument")}
     </button>
   );
 }

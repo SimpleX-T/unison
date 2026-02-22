@@ -14,6 +14,7 @@ import {
   Pencil,
   Eye,
 } from "lucide-react";
+import { useUITranslation } from "@/hooks/useUITranslation";
 
 interface InviteDocumentModalProps {
   documentId: string;
@@ -49,6 +50,7 @@ export function InviteDocumentModal({
 }: InviteDocumentModalProps) {
   const workspace = useAppStore((s) => s.workspace);
   const user = useAppStore((s) => s.user);
+  const { t } = useUITranslation();
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [search, setSearch] = useState("");
@@ -160,7 +162,7 @@ export function InviteDocumentModal({
               fontSize: "20px",
             }}
           >
-            Share Document
+            {t("doc.shareDocument")}
           </h2>
           <button
             onClick={onClose}
@@ -194,7 +196,7 @@ export function InviteDocumentModal({
           />
           <input
             className="input"
-            placeholder="Search workspace members..."
+            placeholder={t("doc.searchMembers")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -219,7 +221,7 @@ export function InviteDocumentModal({
                 marginBottom: 8,
               }}
             >
-              Current Collaborators
+              {t("doc.currentCollaborators")}
             </div>
             {collaborators.map((c) => (
               <div
@@ -276,7 +278,7 @@ export function InviteDocumentModal({
                   ) : (
                     <Eye size={11} />
                   )}
-                  {c.role}
+                  {c.role === "editor" ? t("common.editor") : t("common.viewer")}
                 </span>
                 <button
                   className="btn btn-ghost btn-sm"
@@ -294,7 +296,7 @@ export function InviteDocumentModal({
                       style={{ animation: "spin 1s linear infinite" }}
                     />
                   ) : (
-                    "Remove"
+                    t("common.remove")
                   )}
                 </button>
               </div>
@@ -314,7 +316,7 @@ export function InviteDocumentModal({
             marginBottom: 8,
           }}
         >
-          Workspace Members
+          {t("doc.workspaceMembers")}
         </div>
 
         {loading ? (
@@ -334,7 +336,7 @@ export function InviteDocumentModal({
               size={14}
               style={{ animation: "spin 1s linear infinite" }}
             />
-            Loading...
+            {t("common.loading")}
           </div>
         ) : filtered.length === 0 ? (
           <div
@@ -346,8 +348,8 @@ export function InviteDocumentModal({
             }}
           >
             {search
-              ? "No members match your search."
-              : "No other members in this workspace."}
+              ? t("doc.noMembersMatch")
+              : t("doc.noOtherMembers")}
           </div>
         ) : (
           <div
@@ -410,7 +412,7 @@ export function InviteDocumentModal({
                       }}
                     >
                       <Check size={13} />
-                      Invited
+                      {t("doc.invited")}
                     </span>
                   ) : (
                     <button
@@ -433,7 +435,7 @@ export function InviteDocumentModal({
                       ) : (
                         <>
                           <UserPlus size={12} />
-                          Invite
+                          {t("common.invite")}
                         </>
                       )}
                     </button>
@@ -452,7 +454,7 @@ export function InviteDocumentModal({
           }}
         >
           <button className="btn btn-ghost" onClick={onClose}>
-            Done
+            {t("common.done")}
           </button>
         </div>
       </div>
