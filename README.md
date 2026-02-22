@@ -25,7 +25,7 @@ Unison is a full collaborative workspace where **language is context, not a barr
 
 ## Demo
 
-[![Watch the video](https://img.youtube.com/vi/MVTW1IhFB1E/0.jpg)](https://www.youtube.com/MVTW1IhFB1E)
+[![Watch the video](https://img.youtube.com/vi/MVTW1IhFB1E/0.jpg)](https://youtu.be/MVTW1IhFB1E)
 
 ---
 
